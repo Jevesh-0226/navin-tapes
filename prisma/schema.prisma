@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// MATERIALS
+// ==========================================
+// Represents material types used in manufacturing
+// Examples: Lycra, Rubber, Cotton, etc.
+model Material {
+  id                Int       @id @default(autoincrement())
+  name              String    @unique // Material name (e.g., "Lycra", "Rubber")
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  inward            Inward[]
+  production        Production[]
+  inventory         InventoryLedger[]
+
+  @@map("materials")
+}
+
+// ==========================================
+// INWARD ENTRY (Raw Materials + QC)
+// ==========================================
+// Records incoming raw materials with quality checks
+// Flow: Supplier → QC → Stock
+model Inward {
+  id                Int       @id @default(autoincrement())
+  date              DateTime
+  invoice_no        String    // Purchase invoice number
+  supplier          String    // Supplier name
+  materialId        Int       // Foreign key to Material
+  quantity_kg       Float     // Quantity received in kg
+  quantity_box      Float?    // Quantity received in boxes (optional)
+
+  // QC Checks (Boolean flags)
+  packing_ok        Boolean   @default(true)
+  winding_uneven    Boolean   @default(false)
+  colour_shade_ok   Boolean   @default(true)
+  dnk_og_ok         Boolean   @default(true) // DNK/OG quality check
+  stain             Boolean   @default(false)
+  strength_ok       Boolean   @default(true)
+  stretchability_ok Boolean   @default(true)
+  remarks           String?   // Additional notes/observations
+
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  material          Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([materialId])
+  @@map("inward")
+}
+
+// ==========================================
+// PRODUCTION ENTRY
+// ==========================================
+// Records daily production output
+// Logic: total_production = tapes × meters_per_tape
+model Production {
+  id                Int       @id @default(autoincrement())
+  date              DateTime
+  operator_name     String    // Production operator name
+  materialId        Int       // Foreign key to Material
+  size_mm           Int       // Tape size in millimeters
+  tapes             Int       // Number of tapes produced
+  meters_per_tape   Int       // Meters per tape
+  needle_break      Int       @default(0) // Number of needle breaks during production
+  total_production  Int       // Auto-calculated: tapes × meters_per_tape (in meters)
+  remark            String?   // Optional production notes
+
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  material          Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([date, operator_name, materialId, size_mm])
+  @@index([date])
+  @@index([materialId])
+  @@map("production")
+}
+
+// ==========================================
+// INVENTORY LEDGER (Stock Tracking)
+// ==========================================
+// Daily balance tracking per material and size
+// Formula: balance = opening_stock + inward + production - delivery
+// One record per (date + material + size)
+model InventoryLedger {
+  id                Int       @id @default(autoincrement())
+  date              DateTime
+  materialId        Int       // Foreign key to Material
+  size_mm           Int       // Tape size in millimeters
+  opening_stock     Float     @default(0) // Opening balance for the day
+  inward            Float     @default(0) // Inward quantity (in meters)
+  production        Float     @default(0) // Production quantity (in meters)
+  delivery          Float     @default(0) // Delivery/consumption (in meters)
+  balance           Float     @default(0) // Auto-calculated: opening + inward + production - delivery
+
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  // Relations
+  material          Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([date, materialId, size_mm])
+  @@index([date])
+  @@index([materialId])
+  @@map("inventory_ledger")
+}
