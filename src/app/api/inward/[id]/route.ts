@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { inwardService } from '@/services/inward.service';
+import { purchaseService } from '@/services/purchase.service';
 import { createInwardSchema } from '@/lib/validation';
 import { ZodError } from 'zod';
+
+// DEPRECATED: Use /api/purchase/[id] instead
+// This endpoint is maintained for backward compatibility
 
 export async function GET(
   request: NextRequest,
@@ -9,25 +12,25 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const inwardId = parseInt(id, 10);
+    const purchaseId = parseInt(id, 10);
 
-    if (isNaN(inwardId)) {
+    if (isNaN(purchaseId)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid inward ID',
+          error: 'Invalid purchase ID',
         },
         { status: 400 }
       );
     }
 
-    const inward = await inwardService.getInwardById(inwardId);
+    const purchase = await purchaseService.getPurchaseById(purchaseId);
 
-    if (!inward) {
+    if (!purchase) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Inward entry not found',
+          error: 'Purchase entry not found',
         },
         { status: 404 }
       );
@@ -35,14 +38,14 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: inward,
+      data: purchase,
     });
   } catch (error) {
-    console.error('Error fetching inward:', error);
+    console.error('Error fetching purchase:', error);
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch inward entry',
+        error: 'Failed to fetch purchase entry',
       },
       { status: 500 }
     );
@@ -55,13 +58,13 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const inwardId = parseInt(id, 10);
+    const purchaseId = parseInt(id, 10);
 
-    if (isNaN(inwardId)) {
+    if (isNaN(purchaseId)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid inward ID',
+          error: 'Invalid purchase ID',
         },
         { status: 400 }
       );
@@ -72,15 +75,15 @@ export async function PUT(
     // Validate input (all fields optional for update)
     const validatedData = createInwardSchema.partial().parse(body);
 
-    const inward = await inwardService.updateInward(inwardId, validatedData);
+    const purchase = await purchaseService.updatePurchase(purchaseId, validatedData);
 
     return NextResponse.json({
       success: true,
-      data: inward,
-      message: 'Inward entry updated successfully',
+      data: purchase,
+      message: 'Purchase entry updated successfully',
     });
   } catch (error) {
-    console.error('Error updating inward:', error);
+    console.error('Error updating purchase:', error);
 
     if (error instanceof ZodError) {
       return NextResponse.json(
@@ -98,7 +101,7 @@ export async function PUT(
         return NextResponse.json(
           {
             success: false,
-            error: 'Inward entry not found',
+            error: 'Purchase entry not found',
           },
           { status: 404 }
         );
@@ -115,7 +118,7 @@ export async function PUT(
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update inward entry',
+        error: 'Failed to update purchase entry',
       },
       { status: 500 }
     );
@@ -128,33 +131,33 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const inwardId = parseInt(id, 10);
+    const purchaseId = parseInt(id, 10);
 
-    if (isNaN(inwardId)) {
+    if (isNaN(purchaseId)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid inward ID',
+          error: 'Invalid purchase ID',
         },
         { status: 400 }
       );
     }
 
-    await inwardService.deleteInward(inwardId);
+    await purchaseService.deletePurchase(purchaseId);
 
     return NextResponse.json({
       success: true,
-      message: 'Inward entry deleted successfully',
+      message: 'Purchase entry deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting inward:', error);
+    console.error('Error deleting purchase:', error);
 
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Inward entry not found',
+            error: 'Purchase entry not found',
           },
           { status: 404 }
         );
@@ -164,7 +167,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete inward entry',
+        error: 'Failed to delete purchase entry',
       },
       { status: 500 }
     );

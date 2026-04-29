@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { inwardService } from '@/services/inward.service';
+import { purchaseService } from '@/services/purchase.service';
 import { createInwardSchema } from '@/lib/validation';
 import { ZodError } from 'zod';
+
+// DEPRECATED: Use /api/purchase instead
+// This endpoint is maintained for backward compatibility
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,116 +13,62 @@ export async function GET(request: NextRequest) {
     const supplier = searchParams.get('supplier');
     const material = searchParams.get('material');
     const invoice = searchParams.get('invoice');
-    const summary = searchParams.get('summary');
-    const qcDefects = searchParams.get('qcDefects');
-
-    // Get QC defect summary
-    if (qcDefects) {
-      const startDate = searchParams.get('startDate');
-      const endDate = searchParams.get('endDate');
-
-      if (!startDate || !endDate) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'startDate and endDate required for QC defects',
-          },
-          { status: 400 }
-        );
-      }
-
-      const defectData = await inwardService.getQCDefectSummary(
-        new Date(startDate),
-        new Date(endDate)
-      );
-
-      return NextResponse.json({
-        success: true,
-        data: defectData,
-      });
-    }
-
-    // Get inward summary for date range
-    if (summary) {
-      const startDate = searchParams.get('startDate');
-      const endDate = searchParams.get('endDate');
-
-      if (!startDate || !endDate) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'startDate and endDate required for summary',
-          },
-          { status: 400 }
-        );
-      }
-
-      const summaryData = await inwardService.getInwardSummary(
-        new Date(startDate),
-        new Date(endDate)
-      );
-
-      return NextResponse.json({
-        success: true,
-        data: summaryData,
-      });
-    }
 
     // Get by specific date
     if (date) {
-      const inward = await inwardService.getInwardByDate(new Date(date));
+      const purchase = await purchaseService.getPurchaseByDate(new Date(date));
       return NextResponse.json({
         success: true,
-        data: inward,
+        data: purchase,
       });
     }
 
     // Get by supplier
     if (supplier) {
-      const inward = await inwardService.getInwardBySupplier(
+      const purchase = await purchaseService.getPurchaseBySupplier(
         decodeURIComponent(supplier)
       );
       return NextResponse.json({
         success: true,
-        data: inward,
+        data: purchase,
       });
     }
 
     // Get by material
     if (material) {
-      const inward = await inwardService.getInwardByMaterial(
-        decodeURIComponent(material)
+      const purchase = await purchaseService.getPurchaseByMaterial(
+        parseInt(material, 10)
       );
       return NextResponse.json({
         success: true,
-        data: inward,
+        data: purchase,
       });
     }
 
     // Get by invoice
     if (invoice) {
-      const inward = await inwardService.getInwardByInvoice(
+      const purchase = await purchaseService.getPurchaseByInvoice(
         decodeURIComponent(invoice)
       );
       return NextResponse.json({
         success: true,
-        data: inward,
+        data: purchase,
       });
     }
 
     // Get all
-    const inward = await inwardService.getAllInward();
+    const purchase = await purchaseService.getAllPurchase();
 
     return NextResponse.json({
       success: true,
-      data: inward,
+      data: purchase,
     });
   } catch (error) {
-    console.error('Error fetching inward:', error);
+    console.error('Error fetching purchase:', error);
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch inward entries',
+        error: 'Failed to fetch purchase entries',
       },
       { status: 500 }
     );
@@ -133,18 +82,18 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validatedData = createInwardSchema.parse(body);
 
-    const inward = await inwardService.createInward(validatedData);
+    const purchase = await purchaseService.createPurchase(validatedData);
 
     return NextResponse.json(
       {
         success: true,
-        data: inward,
-        message: 'Inward entry created successfully',
+        data: purchase,
+        message: 'Purchase entry created successfully',
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error creating inward:', error);
+    console.error('Error creating purchase:', error);
 
     if (error instanceof ZodError) {
       return NextResponse.json(
@@ -170,7 +119,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create inward entry',
+        error: 'Failed to create purchase entry',
       },
       { status: 500 }
     );

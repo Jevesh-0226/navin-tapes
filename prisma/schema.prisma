@@ -93,8 +93,10 @@ model Production {
 // ==========================================
 // INVENTORY LEDGER (Stock Tracking)
 // ==========================================
+// INVENTORY LEDGER (Stock Tracking)
+// ==========================================
 // Daily balance tracking per material and size
-// Formula: balance = opening_stock + inward + production - delivery
+// Formula: balance = opening_stock + purchase + production - delivery
 // One record per (date + material + size)
 model InventoryLedger {
   id                Int       @id @default(autoincrement())
@@ -102,10 +104,10 @@ model InventoryLedger {
   materialId        Int       // Foreign key to Material
   size_mm           Int       // Tape size in millimeters
   opening_stock     Float     @default(0) // Opening balance for the day
-  inward            Float     @default(0) // Inward quantity (in meters)
+  purchase          Float     @default(0) // Purchase quantity (in meters)
   production        Float     @default(0) // Production quantity (in meters)
   delivery          Float     @default(0) // Delivery/consumption (in meters)
-  balance           Float     @default(0) // Auto-calculated: opening + inward + production - delivery
+  balance           Float     @default(0) // Auto-calculated: opening + purchase + production - delivery
 
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt

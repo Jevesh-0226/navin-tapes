@@ -1,3 +1,9 @@
+/**
+ * @deprecated Use purchaseService instead
+ * This service is deprecated and maintained for backward compatibility only.
+ * All inward-related operations have been renamed to "purchase" for better UX.
+ */
+
 import db from '@/lib/db';
 
 export const inwardService = {

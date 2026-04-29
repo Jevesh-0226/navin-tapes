@@ -8,7 +8,7 @@ async function main() {
   // Clear existing data (safe for fresh db)
   await prisma.inventoryLedger.deleteMany();
   await prisma.production.deleteMany();
-  await prisma.inward.deleteMany();
+  await prisma.purchase.deleteMany();
   await prisma.material.deleteMany();
 
   // ==========================================
@@ -36,9 +36,9 @@ async function main() {
   });
 
   // ==========================================
-  // SEED INWARD ENTRIES
+  // SEED PURCHASE ENTRIES
   // ==========================================
-  const inwardData = await prisma.inward.createMany({
+  const purchaseData = await prisma.purchase.createMany({
     data: [
       {
         date: new Date("2026-04-25"),
@@ -91,7 +91,7 @@ async function main() {
     ],
   });
 
-  console.log(`✅ Created ${inwardData.count} inward entries`);
+  console.log(`✅ Created ${purchaseData.count} purchase entries`);
 
   // ==========================================
   // SEED PRODUCTION ENTRIES
@@ -149,7 +149,7 @@ async function main() {
         materialId: lycra!.id,
         size_mm: 12,
         opening_stock: 10000,
-        inward: 5000,
+        purchase: 5000,
         production: 5000,
         delivery: 2000,
         balance: 18000, // 10000 + 5000 + 5000 - 2000
@@ -159,7 +159,7 @@ async function main() {
         materialId: rubber!.id,
         size_mm: 24,
         opening_stock: 8000,
-        inward: 3000,
+        purchase: 3000,
         production: 6000,
         delivery: 1500,
         balance: 15500, // 8000 + 3000 + 6000 - 1500
@@ -169,7 +169,7 @@ async function main() {
         materialId: cotton!.id,
         size_mm: 6,
         opening_stock: 5000,
-        inward: 2000,
+        purchase: 2000,
         production: 6000,
         delivery: 1000,
         balance: 12000, // 5000 + 2000 + 6000 - 1000

@@ -6,7 +6,7 @@ Production-ready PostgreSQL schema designed for a tape manufacturing system. Tra
 
 **Business Flow:**
 ```
-INWARD (Raw Materials) → STOCK → PRODUCTION → STOCK → DELIVERY
+PURCHASE (Raw Materials) → STOCK → PRODUCTION → STOCK → DELIVERY
 ```
 
 ---
@@ -24,17 +24,17 @@ Represents material types used in manufacturing.
 | updated_at | DateTime | Last update timestamp |
 
 **Relations:**
-- One-to-Many: Inward, Production, InventoryLedger
+- One-to-Many: Purchase, Production, InventoryLedger
 
 ---
 
-### 2. **Inward**
+### 2. **Purchase**
 Records incoming raw materials with quality checks.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | id | Int (PK) | Auto-increment primary key |
-| date | DateTime | Inward entry date |
+| date | DateTime | Purchase entry date |
 | invoice_no | String | Purchase invoice number |
 | supplier | String | Supplier name |
 | materialId | Int (FK) | Reference to Material |
@@ -91,10 +91,10 @@ Daily stock balance tracking per material and tape size.
 | materialId | Int (FK) | Reference to Material |
 | size_mm | Int | Tape size in millimeters |
 | opening_stock | Float | Opening balance (in meters) |
-| inward | Float | Inward quantity (in meters) |
+| inward | Float | Purchase quantity (in meters) |
 | production | Float | Production output (in meters) |
 | delivery | Float | Delivery/consumption (in meters) |
-| balance | Float | **opening + inward + production - delivery** |
+| balance | Float | **opening + purchase + production - delivery** |
 | created_at | DateTime | Creation timestamp |
 | updated_at | DateTime | Last update timestamp |
 
@@ -107,7 +107,7 @@ Daily stock balance tracking per material and tape size.
 ## Key Relationships
 
 ```
-Material (1) ──────────── (N) Inward
+Material (1) ──────────── (N) Purchase
               ├──────────── (N) Production
               └──────────── (N) InventoryLedger
 ```
@@ -151,7 +151,7 @@ npm run prisma:seed
 
 This populates the database with:
 - 5 materials (Lycra, Rubber, Cotton, Polyester, Nylon)
-- 3 sample inward entries
+- 3 sample purchase entries
 - 3 sample production entries
 - 3 sample inventory ledger entries
 
@@ -195,10 +195,10 @@ const inventory = await db.inventoryLedger.findMany({
 });
 ```
 
-### Example: Create Inward Entry
+### Example: Create Purchase Entry
 
 ```typescript
-const inward = await db.inward.create({
+const purchase = await db.purchase.create({
   data: {
     date: new Date(),
     invoice_no: "INV-001",
@@ -217,7 +217,7 @@ const inward = await db.inward.create({
 
 ## Notes
 
-- **Cascading Deletes:** If a Material is deleted, all related Inward, Production, and InventoryLedger records are also deleted.
+- **Cascading Deletes:** If a Material is deleted, all related Purchase, Production, and InventoryLedger records are also deleted.
 - **Balance Calculation:** Always calculate balance in the backend/API before storing.
 - **Indexes:** Applied on `date` and `materialId` for faster queries.
 - **Unique Constraints:** 
