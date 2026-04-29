@@ -33,16 +33,26 @@ export const productionAPI = {
     api.get(`/production?summary=true&startDate=${startDate}&endDate=${endDate}`),
 };
 
-// Inward API
+// Inward API (deprecated - use purchaseAPI instead)
 export const inwardAPI = {
-  getAll: () => api.get('/inward'),
-  getByDate: (date: string) => api.get(`/inward?date=${date}`),
-  getById: (id: number) => api.get(`/inward/${id}`),
-  create: (data: any) => api.post('/inward', data),
-  update: (id: number, data: any) => api.put(`/inward/${id}`, data),
-  delete: (id: number) => api.delete(`/inward/${id}`),
+  getAll: () => api.get('/purchase'),
+  getByDate: (date: string) => api.get(`/purchase?date=${date}`),
+  getById: (id: number) => api.get(`/purchase/${id}`),
+  create: (data: any) => api.post('/purchase', data),
+  update: (id: number, data: any) => api.put(`/purchase/${id}`, data),
+  delete: (id: number) => api.delete(`/purchase/${id}`),
   getQCDefectSummary: (startDate: string, endDate: string) =>
-    api.get(`/inward?qcDefects=true&startDate=${startDate}&endDate=${endDate}`),
+    api.get(`/purchase?qcDefects=true&startDate=${startDate}&endDate=${endDate}`),
+};
+
+// Purchase API
+export const purchaseAPI = {
+  getAll: () => api.get('/purchase'),
+  getByDate: (date: string) => api.get(`/purchase?date=${date}`),
+  getById: (id: number) => api.get(`/purchase/${id}`),
+  create: (data: any) => api.post('/purchase', data),
+  update: (id: number, data: any) => api.put(`/purchase/${id}`, data),
+  delete: (id: number) => api.delete(`/purchase/${id}`),
 };
 
 // Inventory API

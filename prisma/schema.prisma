@@ -19,7 +19,7 @@ model Material {
   updated_at        DateTime  @updatedAt
 
   // Relations
-  inward            Inward[]
+  purchase          Purchase[]
   production        Production[]
   inventory         InventoryLedger[]
 
@@ -27,11 +27,11 @@ model Material {
 }
 
 // ==========================================
-// INWARD ENTRY (Raw Materials + QC)
+// PURCHASE ENTRY (Raw Materials + QC)
 // ==========================================
 // Records incoming raw materials with quality checks
 // Flow: Supplier → QC → Stock
-model Inward {
+model Purchase {
   id                Int       @id @default(autoincrement())
   date              DateTime
   invoice_no        String    // Purchase invoice number
@@ -58,7 +58,7 @@ model Inward {
 
   @@index([date])
   @@index([materialId])
-  @@map("inward")
+  @@map("purchase")
 }
 
 // ==========================================
