@@ -3,26 +3,27 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  inventoryAPI,
-  productionAPI,
-  inwardAPI,
+  purchaseAPI,
+  productAPI,
+  salesAPI,
+  stockAPI,
   getErrorMessage,
 } from '@/lib/api-client';
 import { getToday } from '@/lib/utils';
 
 interface DashboardStats {
-  todayInventoryCount: number;
-  todayProductionCount: number;
-  todayInwardCount: number;
-  currentStockValue: number;
+  todayPurchaseCount: number;
+  todayProductCount: number;
+  todaySalesCount: number;
+  totalStockRecords: number;
 }
 
 export default function Home() {
   const [stats, setStats] = useState<DashboardStats>({
-    todayInventoryCount: 0,
-    todayProductionCount: 0,
-    todayInwardCount: 0,
-    currentStockValue: 0,
+    todayPurchaseCount: 0,
+    todayProductCount: 0,
+    todaySalesCount: 0,
+    totalStockRecords: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,28 +40,32 @@ export default function Home() {
       const today = getToday();
 
       const [
-        inventoryRes,
-        productionRes,
-        inwardRes,
-        currentStockRes,
+        purchaseRes,
+        productRes,
+        salesRes,
+        stockRes,
       ] = await Promise.all([
-        inventoryAPI.getByDate(today),
-        productionAPI.getByDate(today),
-        inwardAPI.getByDate(today),
-        inventoryAPI.getCurrentStock(),
+        purchaseAPI.getByDate(today),
+        productAPI.getByDate(today),
+        salesAPI.getByDate(today),
+        stockAPI.getByDate(today),
       ]);
 
-      const currentStock = currentStockRes.data.data || [];
-      const currentStockValue = currentStock.reduce((sum: number, item: { balance: number }) => sum + item.balance, 0);
-
       setStats({
-        todayInventoryCount: inventoryRes.data.data?.length || 0,
-        todayProductionCount: productionRes.data.data?.length || 0,
-        todayInwardCount: inwardRes.data.data?.length || 0,
-        currentStockValue,
+        todayPurchaseCount: purchaseRes.data?.data?.length || 0,
+        todayProductCount: productRes.data?.data?.length || 0,
+        todaySalesCount: salesRes.data?.data?.length || 0,
+        totalStockRecords: stockRes.data?.data?.length || 0,
       });
     } catch (err) {
-      setError(getErrorMessage(err));
+      console.error('Stats error:', err);
+      // Fallback if APIs fail
+      setStats({
+        todayPurchaseCount: 0,
+        todayProductCount: 0,
+        todaySalesCount: 0,
+        totalStockRecords: 0,
+      });
     } finally {
       setLoading(false);
     }
@@ -68,19 +73,25 @@ export default function Home() {
 
   const quickAccessCards = [
     {
-      name: 'Purchase Entry',
+      name: 'Purchase',
       description: 'Record incoming raw materials and quality checks',
       href: '/purchase',
       icon: '📦',
     },
     {
-      name: 'Stocks',
+      name: 'Product',
+      description: 'Log finished goods manufacturing output',
+      href: '/product',
+      icon: '⚙️',
+    },
+    {
+      name: 'Stock',
       description: 'Track and manage daily stock balance',
       href: '/stock',
       icon: '📈',
     },
     {
-      name: 'Sales Entry',
+      name: 'Sales',
       description: 'Record product distribution to customers',
       href: '/sales',
       icon: '💰',
@@ -114,6 +125,12 @@ export default function Home() {
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
             >
               Purchase
+            </Link>
+            <Link
+              href="/product"
+              className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
+            >
+              Product
             </Link>
             <Link
               href="/stock"
@@ -152,7 +169,7 @@ export default function Home() {
 
         {/* Quick Access Cards */}
         <section className="max-w-5xl mx-auto px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {quickAccessCards.map((card) => (
               <Link key={card.name} href={card.href}>
                 <div className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer h-full">
@@ -183,30 +200,41 @@ export default function Home() {
           </div>
         </section>
 
-        {/* System Status (Optional) */}
+        {/* System Status - Excel Format Table */}
         {!loading && !error && (
           <section className="max-w-5xl mx-auto px-6 py-12">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <h3 className="font-semibold text-blue-900 mb-4">Today's Activity</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {stats.currentStockValue.toLocaleString()}
-                  </div>
-                  <div className="text-xs text-blue-700">Current Stock (m)</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {stats.todayProductionCount}
-                  </div>
-                  <div className="text-xs text-blue-700">Sales Entries</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-blue-600">
-                    {stats.todayInwardCount}
-                  </div>
-                  <div className="text-xs text-blue-700">Inward Receipts</div>
-                </div>
+            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+              <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center gap-3">
+                <div className="w-2 h-5 bg-blue-600 rounded-full"></div>
+                <h3 className="font-bold text-slate-900 uppercase tracking-wider text-sm">Today's Activity Report</h3>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed border-collapse">
+                  <thead className="bg-gray-100 text-xs font-semibold text-gray-600 uppercase border-b">
+                    <tr>
+                      <th className="px-6 py-4 text-center border-r border-gray-200 last:border-r-0">Material Purchases</th>
+                      <th className="px-6 py-4 text-center border-r border-gray-200 last:border-r-0">Tape Production</th>
+                      <th className="px-6 py-4 text-center border-r border-gray-200 last:border-r-0">Total Sales</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-900">
+                    <tr>
+                      <td className="px-6 py-8 text-center border-r border-gray-200 last:border-r-0">
+                        <div className="text-4xl font-bold tabular-nums">{stats.todayPurchaseCount}</div>
+                        <div className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-widest text-center">Entries Today</div>
+                      </td>
+                      <td className="px-6 py-8 text-center border-r border-gray-200 last:border-r-0">
+                        <div className="text-4xl font-bold tabular-nums text-blue-600">{stats.todayProductCount}</div>
+                        <div className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-widest text-center">Batches Today</div>
+                      </td>
+                      <td className="px-6 py-8 text-center border-r border-gray-200 last:border-r-0">
+                        <div className="text-4xl font-bold tabular-nums text-green-600">{stats.todaySalesCount}</div>
+                        <div className="text-[10px] text-gray-400 mt-2 font-medium uppercase tracking-widest text-center">Sales Logged</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </section>

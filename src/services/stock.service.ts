@@ -46,29 +46,12 @@ export class StockService {
       },
     });
 
-    // Sum all production for this material on this date (consumes material)
-    // For now, we assume 1:1 ratio if not specified otherwise
-    const productionAgg = await db.production.aggregate({
-      where: {
-        materialId,
-        date: {
-          gte: dayStart,
-          lt: dayEnd,
-        },
-      },
-      _sum: {
-        total_production: true,
-      },
-    });
-
-    const purchase = purchaseAgg._sum.quantity_kg ?? 0;
-    const production_consumed = productionAgg._sum.total_production ?? 0;
+    const purchase = purchaseAgg._sum?.quantity_kg ?? 0;
     const opening_stock = await this.getPreviousBalance(date, materialId, null);
-    
-    // Formula for raw material: balance = opening + purchase - production_consumed
-    const production = 0; // Raw material doesn't have "production adds", only "consumes"
-    const sales = 0;
-    const balance = opening_stock + purchase - production_consumed;
+
+    // Raw material balance = opening stock + purchased quantity
+    // (Production consumption is not tracked per batch in the current system)
+    const balance = opening_stock + purchase;
 
     return {
       date: dayStart,
@@ -76,8 +59,8 @@ export class StockService {
       size_mm: null,
       opening_stock,
       purchase,
-      production: -production_consumed, // Show as negative in the ledger to show consumption
-      sales,
+      production: 0,
+      sales: 0,
       balance,
     };
   }
@@ -131,9 +114,9 @@ export class StockService {
       },
     });
 
-    const production = productAgg._sum.quantity ?? 0;
-    const purchase = purchaseAgg._sum.quantity_kg ?? 0;
-    const sales = salesAgg._sum.quantity ?? 0;
+    const production = productAgg._sum?.quantity ?? 0;
+    const purchase = purchaseAgg._sum?.quantity_kg ?? 0;
+    const sales = salesAgg._sum?.quantity ?? 0;
     const opening_stock = await this.getPreviousBalance(date, null, size_mm);
 
     // Formula for product: balance = opening + purchase + production - sales
@@ -251,7 +234,7 @@ export class StockService {
     ]);
 
     for (const p of purchases) {
-      await this.recalculateStock(date, p.materialId);
+      await this.recalculateStock(date, p.materialId ?? undefined);
     }
 
     for (const size of uniqueSizes) {

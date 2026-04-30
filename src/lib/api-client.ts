@@ -43,15 +43,15 @@ export const salesAPI = {
 
 // Stock API - Central inventory ledger
 export const stockAPI = {
-  getAll: () => api.get('/inventory'),
-  getByDate: (date: string) => api.get(`/inventory?date=${date}`),
-  getById: (id: number) => api.get(`/inventory/${id}`),
-  getCurrentStock: () => api.get('/inventory?current=true'),
-  create: (data: any) => api.post('/inventory', data),
-  update: (id: number, data: any) => api.put(`/inventory/${id}`, data),
-  delete: (id: number) => api.delete(`/inventory/${id}`),
+  getAll: () => api.get('/stock'),
+  getByDate: (date: string) => api.get(`/stock?date=${date}`),
+  getById: (id: number) => api.get(`/stock/${id}`),
+  getCurrentStock: () => api.get('/stock?current=true'),
+  create: (data: any) => api.post('/stock', data),
+  update: (id: number, data: any) => api.put(`/stock/${id}`, data),
+  delete: (id: number) => api.delete(`/stock/${id}`),
   getReport: (startDate: string, endDate: string) =>
-    api.get(`/inventory?report=true&startDate=${startDate}&endDate=${endDate}`),
+    api.get(`/stock?report=true&startDate=${startDate}&endDate=${endDate}`),
 };
 
 // Product API - Finished goods production
@@ -62,21 +62,3 @@ export const productAPI = {
   delete: (id: number) => api.delete(`/product/${id}`),
 };
 
-// Backward compatibility aliases
-export const inventoryAPI = stockAPI;
-export const inwardAPI = purchaseAPI;
-
-// Stub for productionAPI (no longer used in new system)
-export const productionAPI = {
-  getAll: () => api.get('/production').catch(() => ({ data: { data: [] } })),
-  getByDate: (date: string) =>
-    api.get(`/production?date=${date}`).catch(() => ({ data: { data: [] } })),
-  getById: (id: number) =>
-    api.get(`/production/${id}`).catch(() => ({ data: { data: null } })),
-  create: (data: any) =>
-    api.post('/production', data).catch(() => ({ data: { data: null } })),
-  update: (id: number, data: any) =>
-    api.put(`/production/${id}`, data).catch(() => ({ data: { data: null } })),
-  delete: (id: number) =>
-    api.delete(`/production/${id}`).catch(() => ({ data: { data: null } })),
-};
