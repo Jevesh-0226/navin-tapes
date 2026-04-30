@@ -68,7 +68,7 @@ export default function Home() {
 
   const quickAccessCards = [
     {
-      name: 'Inward Entry',
+      name: 'Purchase Entry',
       description: 'Record incoming raw materials and quality checks',
       href: '/inward',
       icon: '📦',

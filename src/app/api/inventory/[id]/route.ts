@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { inventoryService } from '@/services/inventory.service';
-import { createInventoryLedgerSchema } from '@/lib/validation';
+import { stockService } from '@/services/inventory.service';
 import { ZodError } from 'zod';
+import { z } from 'zod';
+
+const updateStockSchema = z.object({
+  date: z.string().datetime().optional(),
+  materialId: z.number().int().optional().nullable(),
+  size_mm: z.number().int().optional().nullable(),
+  opening_stock: z.number().optional(),
+  purchase: z.number().optional(),
+  production: z.number().optional(),
+  sales: z.number().optional(),
+});
 
 export async function GET(
   request: NextRequest,
@@ -9,41 +19,29 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const inventoryId = parseInt(id, 10);
+    const stockId = parseInt(id, 10);
 
-    if (isNaN(inventoryId)) {
+    if (isNaN(stockId)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid inventory ID',
-        },
+        { success: false, error: 'Invalid stock ID' },
         { status: 400 }
       );
     }
 
-    const inventory = await inventoryService.getInventoryById(inventoryId);
+    const data = await stockService.getById(stockId);
 
-    if (!inventory) {
+    if (!data) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Inventory entry not found',
-        },
+        { success: false, error: 'Stock entry not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: inventory,
-    });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error fetching inventory:', error);
+    console.error('Error fetching stock:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch inventory entry',
-      },
+      { success: false, error: 'Failed to fetch stock entry' },
       { status: 500 }
     );
   }
@@ -55,88 +53,27 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const inventoryId = parseInt(id, 10);
+    const stockId = parseInt(id, 10);
 
-    if (isNaN(inventoryId)) {
+    if (isNaN(stockId)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid inventory ID',
-        },
+        { success: false, error: 'Invalid stock ID' },
         { status: 400 }
       );
     }
 
     const body = await request.json();
-    const { _action } = body;
+    const validatedData = updateStockSchema.parse(body);
 
-    // Special action: Update only delivery amount (most common)
-    if (_action === 'update_delivery') {
-      const { delivery } = body;
-
-      if (delivery === undefined || delivery === null) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'delivery amount required',
-          },
-          { status: 400 }
-        );
-      }
-
-      const inventory = await inventoryService.updateDelivery(
-        inventoryId,
-        Number(delivery)
-      );
-
-      return NextResponse.json({
-        success: true,
-        data: inventory,
-        message: 'Delivery updated and balance recalculated',
-      });
-    }
-
-    // Special action: Update production aggregation (auto-sum from production table)
-    if (_action === 'update_production') {
-      const existing = await inventoryService.getInventoryById(inventoryId);
-
-      if (!existing) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Inventory entry not found',
-          },
-          { status: 404 }
-        );
-      }
-
-      const inventory = await inventoryService.updateProductionAggregation(
-        existing.date,
-        existing.size_mm
-      );
-
-      return NextResponse.json({
-        success: true,
-        data: inventory,
-        message: 'Production aggregated and balance recalculated',
-      });
-    }
-
-    // Regular: Update full inventory record
-    const validatedData = createInventoryLedgerSchema.partial().parse(body);
-
-    const inventory = await inventoryService.updateInventory(
-      inventoryId,
-      validatedData
-    );
+    const data = await stockService.update(stockId, validatedData);
 
     return NextResponse.json({
       success: true,
-      data: inventory,
-      message: 'Inventory entry updated successfully',
+      data,
+      message: 'Stock entry updated successfully',
     });
   } catch (error) {
-    console.error('Error updating inventory:', error);
+    console.error('Error updating stock:', error);
 
     if (error instanceof ZodError) {
       return NextResponse.json(
@@ -152,27 +89,18 @@ export async function PUT(
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
         return NextResponse.json(
-          {
-            success: false,
-            error: 'Inventory entry not found',
-          },
+          { success: false, error: 'Stock entry not found' },
           { status: 404 }
         );
       }
       return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
+        { success: false, error: error.message },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update inventory entry',
-      },
+      { success: false, error: 'Failed to update stock entry' },
       { status: 500 }
     );
   }
@@ -184,44 +112,33 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const inventoryId = parseInt(id, 10);
+    const stockId = parseInt(id, 10);
 
-    if (isNaN(inventoryId)) {
+    if (isNaN(stockId)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid inventory ID',
-        },
+        { success: false, error: 'Invalid stock ID' },
         { status: 400 }
       );
     }
 
-    await inventoryService.deleteInventory(inventoryId);
+    await stockService.delete(stockId);
 
     return NextResponse.json({
       success: true,
-      message: 'Inventory entry deleted successfully',
+      message: 'Stock entry deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting inventory:', error);
+    console.error('Error deleting stock:', error);
 
     if (error instanceof Error) {
-      if (error.message.includes('not found')) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'Inventory entry not found',
-          },
-          { status: 404 }
-        );
-      }
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to delete inventory entry',
-      },
+      { success: false, error: 'Failed to delete stock entry' },
       { status: 500 }
     );
   }

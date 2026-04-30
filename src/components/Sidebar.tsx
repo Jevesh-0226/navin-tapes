@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation';
 const navigationItems = [
   { label: 'Dashboard', href: '/', icon: '📊' },
   { label: 'Purchase', href: '/purchase', icon: '📦' },
-  { label: 'Production', href: '/production', icon: '⚙️' },
-  { label: 'Stocks', href: '/inventory', icon: '📈' },
+  { label: 'Stock', href: '/inventory', icon: '📈' },
+  { label: 'Sales', href: '/sales', icon: '💰' },
 ];
 
 export default function Sidebar() {

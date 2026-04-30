@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { inventoryService } from '@/services/inventory.service';
-import { createInventoryLedgerSchema } from '@/lib/validation';
+import { stockService } from '@/services/inventory.service';
 import { ZodError } from 'zod';
+import { z } from 'zod';
+
+const createStockSchema = z.object({
+  date: z.string().datetime(),
+  materialId: z.number().int().optional(),
+  size_mm: z.number().int().optional(),
+  opening_stock: z.number().default(0),
+  purchase: z.number().default(0),
+  production: z.number().default(0),
+  sales: z.number().default(0),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,16 +21,13 @@ export async function GET(request: NextRequest) {
     const report = searchParams.get('report');
     const current = searchParams.get('current');
 
-    // Get current stock (latest balance for each size)
+    // Get current stock
     if (current === 'true') {
-      const currentStock = await inventoryService.getCurrentStock();
-      return NextResponse.json({
-        success: true,
-        data: currentStock,
-      });
+      const data = await stockService.getCurrent();
+      return NextResponse.json({ success: true, data });
     }
 
-    // Get inventory report for date range
+    // Get stock report for date range
     if (report) {
       const startDate = searchParams.get('startDate');
       const endDate = searchParams.get('endDate');
@@ -35,53 +42,34 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const reportData = await inventoryService.getInventoryReport(
+      const data = await stockService.getReport(
         new Date(startDate),
         new Date(endDate)
       );
 
-      return NextResponse.json({
-        success: true,
-        data: reportData,
-      });
+      return NextResponse.json({ success: true, data });
     }
 
-    // Get inventory for specific date
+    // Get stock for specific date
     if (date) {
-      const inventory = await inventoryService.getInventoryByDate(
-        new Date(date)
-      );
-      return NextResponse.json({
-        success: true,
-        data: inventory,
-      });
+      const data = await stockService.getByDate(new Date(date));
+      return NextResponse.json({ success: true, data });
     }
 
-    // Get inventory for specific size
+    // Get stock for specific size
     if (size) {
-      const inventory = await inventoryService.getInventoryBySize(
-        parseInt(size, 10)
-      );
-      return NextResponse.json({
-        success: true,
-        data: inventory,
-      });
+      const data = await stockService.getBySize(parseInt(size, 10));
+      return NextResponse.json({ success: true, data });
     }
 
-    // Get all inventory
-    const inventory = await inventoryService.getAllInventory();
+    // Get all stock
+    const data = await stockService.getAll();
 
-    return NextResponse.json({
-      success: true,
-      data: inventory,
-    });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error fetching inventory:', error);
+    console.error('Error fetching stock:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch inventory',
-      },
+      { success: false, error: 'Failed to fetch stock' },
       { status: 500 }
     );
   }
@@ -90,78 +78,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { _action } = body;
 
-    // Special action: Initialize day inventory with all products
-    if (_action === 'initialize_day') {
-      const { date } = body;
-
-      if (!date) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'date required for initialize_day action',
-          },
-          { status: 400 }
-        );
-      }
-
-      const inventory = await inventoryService.initializeDayInventory(
-        new Date(date)
-      );
-
-      return NextResponse.json(
-        {
-          success: true,
-          data: inventory,
-          message: `Initialized ${inventory.length} inventory entries for the day`,
-        },
-        { status: 201 }
-      );
-    }
-
-    // Special action: Aggregate production for the day
-    if (_action === 'aggregate_production') {
-      const { date } = body;
-
-      if (!date) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'date required for aggregate_production action',
-          },
-          { status: 400 }
-        );
-      }
-
-      const inventory = await inventoryService.getInventoryByDate(
-        new Date(date)
-      );
-
-      return NextResponse.json(
-        {
-          success: true,
-          data: inventory,
-          message: 'Production aggregated for the day',
-        },
-        { status: 200 }
-      );
-    }
-
-    // Regular: Create inventory entry
-    const validatedData = createInventoryLedgerSchema.parse(body);
-    const inventory = await inventoryService.createInventory(validatedData);
+    // Validate input
+    const validatedData = createStockSchema.parse(body);
+    const data = await stockService.create(validatedData);
 
     return NextResponse.json(
       {
         success: true,
-        data: inventory,
-        message: 'Inventory entry created successfully',
+        data,
+        message: 'Stock entry created successfully',
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error creating inventory:', error);
+    console.error('Error creating stock:', error);
 
     if (error instanceof ZodError) {
       return NextResponse.json(
@@ -176,19 +107,13 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof Error) {
       return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
+        { success: false, error: error.message },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to create inventory entry',
-      },
+      { success: false, error: 'Failed to create stock entry' },
       { status: 500 }
     );
   }

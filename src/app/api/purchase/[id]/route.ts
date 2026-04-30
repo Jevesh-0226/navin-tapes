@@ -13,37 +13,25 @@ export async function GET(
 
     if (isNaN(purchaseId)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid purchase ID',
-        },
+        { success: false, error: 'Invalid purchase ID' },
         { status: 400 }
       );
     }
 
-    const purchase = await purchaseService.getPurchaseById(purchaseId);
+    const data = await purchaseService.getById(purchaseId);
 
-    if (!purchase) {
+    if (!data) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Purchase entry not found',
-        },
+        { success: false, error: 'Purchase entry not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: purchase,
-    });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching purchase:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch purchase entry',
-      },
+      { success: false, error: 'Failed to fetch purchase entry' },
       { status: 500 }
     );
   }
@@ -59,10 +47,7 @@ export async function PUT(
 
     if (isNaN(purchaseId)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid purchase ID',
-        },
+        { success: false, error: 'Invalid purchase ID' },
         { status: 400 }
       );
     }
@@ -72,11 +57,11 @@ export async function PUT(
     // Validate input (all fields optional for update)
     const validatedData = createInwardSchema.partial().parse(body);
 
-    const purchase = await purchaseService.updatePurchase(purchaseId, validatedData);
+    const data = await purchaseService.update(purchaseId, validatedData);
 
     return NextResponse.json({
       success: true,
-      data: purchase,
+      data,
       message: 'Purchase entry updated successfully',
     });
   } catch (error) {
@@ -96,27 +81,18 @@ export async function PUT(
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
         return NextResponse.json(
-          {
-            success: false,
-            error: 'Purchase entry not found',
-          },
+          { success: false, error: 'Purchase entry not found' },
           { status: 404 }
         );
       }
       return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
+        { success: false, error: error.message },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update purchase entry',
-      },
+      { success: false, error: 'Failed to update purchase entry' },
       { status: 500 }
     );
   }
@@ -132,15 +108,12 @@ export async function DELETE(
 
     if (isNaN(purchaseId)) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid purchase ID',
-        },
+        { success: false, error: 'Invalid purchase ID' },
         { status: 400 }
       );
     }
 
-    await purchaseService.deletePurchase(purchaseId);
+    await purchaseService.delete(purchaseId);
 
     return NextResponse.json({
       success: true,
@@ -151,19 +124,13 @@ export async function DELETE(
 
     if (error instanceof Error) {
       return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
+        { success: false, error: error.message },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to delete purchase entry',
-      },
+      { success: false, error: 'Failed to delete purchase entry' },
       { status: 500 }
     );
   }

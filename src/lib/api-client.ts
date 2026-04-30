@@ -21,31 +21,7 @@ export function getErrorMessage(error: unknown): string {
   return 'An unknown error occurred';
 }
 
-// Production API
-export const productionAPI = {
-  getAll: () => api.get('/production'),
-  getByDate: (date: string) => api.get(`/production?date=${date}`),
-  getById: (id: number) => api.get(`/production/${id}`),
-  create: (data: any) => api.post('/production', data),
-  update: (id: number, data: any) => api.put(`/production/${id}`, data),
-  delete: (id: number) => api.delete(`/production/${id}`),
-  getSummary: (startDate: string, endDate: string) =>
-    api.get(`/production?summary=true&startDate=${startDate}&endDate=${endDate}`),
-};
-
-// Inward API (deprecated - use purchaseAPI instead)
-export const inwardAPI = {
-  getAll: () => api.get('/purchase'),
-  getByDate: (date: string) => api.get(`/purchase?date=${date}`),
-  getById: (id: number) => api.get(`/purchase/${id}`),
-  create: (data: any) => api.post('/purchase', data),
-  update: (id: number, data: any) => api.put(`/purchase/${id}`, data),
-  delete: (id: number) => api.delete(`/purchase/${id}`),
-  getQCDefectSummary: (startDate: string, endDate: string) =>
-    api.get(`/purchase?qcDefects=true&startDate=${startDate}&endDate=${endDate}`),
-};
-
-// Purchase API
+// Purchase API - Raw material purchases
 export const purchaseAPI = {
   getAll: () => api.get('/purchase'),
   getByDate: (date: string) => api.get(`/purchase?date=${date}`),
@@ -55,8 +31,18 @@ export const purchaseAPI = {
   delete: (id: number) => api.delete(`/purchase/${id}`),
 };
 
-// Inventory API
-export const inventoryAPI = {
+// Sales API - Product distribution to customers
+export const salesAPI = {
+  getAll: () => api.get('/sales'),
+  getByDate: (date: string) => api.get(`/sales?date=${date}`),
+  getById: (id: number) => api.get(`/sales/${id}`),
+  create: (data: any) => api.post('/sales', data),
+  update: (id: number, data: any) => api.put(`/sales/${id}`, data),
+  delete: (id: number) => api.delete(`/sales/${id}`),
+};
+
+// Stock API - Central inventory ledger
+export const stockAPI = {
   getAll: () => api.get('/inventory'),
   getByDate: (date: string) => api.get(`/inventory?date=${date}`),
   getById: (id: number) => api.get(`/inventory/${id}`),
@@ -64,14 +50,25 @@ export const inventoryAPI = {
   create: (data: any) => api.post('/inventory', data),
   update: (id: number, data: any) => api.put(`/inventory/${id}`, data),
   delete: (id: number) => api.delete(`/inventory/${id}`),
-  initializeDay: (date: string) =>
-    api.post('/inventory', { _action: 'initialize_day', date }),
-  aggregateProduction: (date: string) =>
-    api.post('/inventory', { _action: 'aggregate_production', date }),
-  updateProduction: (id: number) =>
-    api.put(`/inventory/${id}`, { _action: 'update_production' }),
-  updateDelivery: (id: number, delivery: number) =>
-    api.put(`/inventory/${id}`, { _action: 'update_delivery', delivery }),
   getReport: (startDate: string, endDate: string) =>
     api.get(`/inventory?report=true&startDate=${startDate}&endDate=${endDate}`),
+};
+
+// Backward compatibility aliases
+export const inventoryAPI = stockAPI;
+export const inwardAPI = purchaseAPI;
+
+// Stub for productionAPI (no longer used in new system)
+export const productionAPI = {
+  getAll: () => api.get('/production').catch(() => ({ data: { data: [] } })),
+  getByDate: (date: string) =>
+    api.get(`/production?date=${date}`).catch(() => ({ data: { data: [] } })),
+  getById: (id: number) =>
+    api.get(`/production/${id}`).catch(() => ({ data: { data: null } })),
+  create: (data: any) =>
+    api.post('/production', data).catch(() => ({ data: { data: null } })),
+  update: (id: number, data: any) =>
+    api.put(`/production/${id}`, data).catch(() => ({ data: { data: null } })),
+  delete: (id: number) =>
+    api.delete(`/production/${id}`).catch(() => ({ data: { data: null } })),
 };

@@ -9,64 +9,35 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const supplier = searchParams.get('supplier');
     const material = searchParams.get('material');
-    const invoice = searchParams.get('invoice');
 
     // Get by specific date
     if (date) {
-      const purchase = await purchaseService.getPurchaseByDate(new Date(date));
-      return NextResponse.json({
-        success: true,
-        data: purchase,
-      });
+      const data = await purchaseService.getByDate(new Date(date));
+      return NextResponse.json({ success: true, data });
     }
 
     // Get by supplier
     if (supplier) {
-      const purchase = await purchaseService.getPurchaseBySupplier(
+      const data = await purchaseService.getBySupplier(
         decodeURIComponent(supplier)
       );
-      return NextResponse.json({
-        success: true,
-        data: purchase,
-      });
+      return NextResponse.json({ success: true, data });
     }
 
     // Get by material
     if (material) {
-      const purchase = await purchaseService.getPurchaseByMaterial(
-        parseInt(material, 10)
-      );
-      return NextResponse.json({
-        success: true,
-        data: purchase,
-      });
-    }
-
-    // Get by invoice
-    if (invoice) {
-      const purchase = await purchaseService.getPurchaseByInvoice(
-        decodeURIComponent(invoice)
-      );
-      return NextResponse.json({
-        success: true,
-        data: purchase,
-      });
+      const data = await purchaseService.getByMaterial(parseInt(material, 10));
+      return NextResponse.json({ success: true, data });
     }
 
     // Get all
-    const purchase = await purchaseService.getAllPurchase();
+    const data = await purchaseService.getAll();
 
-    return NextResponse.json({
-      success: true,
-      data: purchase,
-    });
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching purchase:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch purchase entries',
-      },
+      { success: false, error: 'Failed to fetch purchase entries' },
       { status: 500 }
     );
   }
@@ -79,12 +50,12 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validatedData = createInwardSchema.parse(body);
 
-    const purchase = await purchaseService.createPurchase(validatedData);
+    const data = await purchaseService.create(validatedData);
 
     return NextResponse.json(
       {
         success: true,
-        data: purchase,
+        data,
         message: 'Purchase entry created successfully',
       },
       { status: 201 }
@@ -105,19 +76,13 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof Error) {
       return NextResponse.json(
-        {
-          success: false,
-          error: error.message,
-        },
+        { success: false, error: error.message },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to create purchase entry',
-      },
+      { success: false, error: 'Failed to create purchase entry' },
       { status: 500 }
     );
   }
