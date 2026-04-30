@@ -29,6 +29,8 @@ model Purchase {
   created_at     DateTime @default(now())
 
   material Material @relation(fields: [materialId], references: [id])
+
+  @@index([date])
 }
 
 model Sales {
@@ -43,22 +45,29 @@ model Sales {
 
   remarks        String?
   created_at     DateTime @default(now())
+
+  @@index([date])
 }
 
 model Stock {
   id             Int      @id @default(autoincrement())
   date           DateTime
+
+  // Raw material tracking
   materialId     Int?
+
+  // Finished goods tracking
   size_mm        Int?
 
-  opening_stock  Float
-  purchase       Float
-  production     Float
-  sales          Float
+  opening_stock  Float     @default(0)
+  purchase       Float     @default(0)
+  production     Float     @default(0)
+  sales          Float     @default(0)
 
   balance        Float
 
   material Material? @relation(fields: [materialId], references: [id])
 
   @@unique([date, materialId, size_mm])
+  @@index([date])
 }

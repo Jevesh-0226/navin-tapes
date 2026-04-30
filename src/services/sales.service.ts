@@ -1,4 +1,5 @@
 import db from '@/lib/db';
+import { StockService } from './stock.service';
 
 export const salesService = {
   // Get all sales entries
@@ -51,7 +52,7 @@ export const salesService = {
   async create(data: any) {
     const amount = data.quantity * data.rate;
 
-    return db.sales.create({
+    const sale = await db.sales.create({
       data: {
         date: new Date(data.date),
         customer_name: data.customer_name,
@@ -62,6 +63,11 @@ export const salesService = {
         remarks: data.remarks || null,
       },
     });
+
+    // Update stock
+    await StockService.recalculateStock(sale.date, undefined, sale.size_mm);
+
+    return sale;
   },
 
   // Update sales entry
@@ -73,7 +79,7 @@ export const salesService = {
     const rate = data.rate ?? existing.rate;
     const amount = quantity * rate;
 
-    return db.sales.update({
+    const sale = await db.sales.update({
       where: { id },
       data: {
         ...(data.date !== undefined && { date: new Date(data.date) }),
@@ -87,11 +93,29 @@ export const salesService = {
         ...(data.remarks !== undefined && { remarks: data.remarks || null }),
       },
     });
+
+    // Update stock for new date/size
+    await StockService.recalculateStock(sale.date, undefined, sale.size_mm);
+
+    // If date or size changed, update old record's stock
+    if (existing.date.getTime() !== sale.date.getTime() || existing.size_mm !== sale.size_mm) {
+      await StockService.recalculateStock(existing.date, undefined, existing.size_mm);
+    }
+
+    return sale;
   },
 
   // Delete sales entry
   async delete(id: number) {
-    return db.sales.delete({ where: { id } });
+    const existing = await db.sales.findUnique({ where: { id } });
+    if (!existing) throw new Error('Sales entry not found');
+
+    const sale = await db.sales.delete({ where: { id } });
+
+    // Update stock
+    await StockService.recalculateStock(sale.date, undefined, sale.size_mm);
+
+    return sale;
   },
 
   // Get daily sales summary
