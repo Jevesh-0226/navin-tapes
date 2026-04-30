@@ -11,8 +11,9 @@ model Material {
   id        Int      @id @default(autoincrement())
   name      String   @unique
 
-  purchases Purchase[]
-  stocks    Stock[]
+  purchases   Purchase[]
+  stocks      Stock[]
+  productions Production[]
 }
 
 model Purchase {
@@ -20,13 +21,34 @@ model Purchase {
   date           DateTime
   invoice_no     String
   supplier       String
-  materialId     Int
+  
+  // Either materialId OR size_mm must be provided
+  materialId     Int?
+  size_mm        Int?
 
   quantity_kg    Float
   quantity_box   Float?
 
   remarks        String?
   created_at     DateTime @default(now())
+
+  material Material? @relation(fields: [materialId], references: [id])
+
+  @@index([date])
+}
+
+model Production {
+  id               Int      @id @default(autoincrement())
+  date             DateTime
+  operator_name    String
+  materialId       Int
+  size_mm          Int
+  tapes            Int
+  meters_per_tape  Float
+  needle_break     Int      @default(0)
+  total_production Float
+  remark           String?
+  created_at       DateTime @default(now())
 
   material Material @relation(fields: [materialId], references: [id])
 

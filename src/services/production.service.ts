@@ -1,4 +1,5 @@
 import db from '@/lib/db';
+import { StockService } from './stock.service';
 
 export const productionService = {
   // Get all production entries
@@ -91,7 +92,7 @@ export const productionService = {
     // Calculate total production: tapes × meters_per_tape
     const total_production = data.tapes * data.meters_per_tape;
 
-    return db.production.create({
+    const entry = await db.production.create({
       data: {
         date: new Date(data.date),
         operator_name: data.operator_name,
@@ -106,6 +107,12 @@ export const productionService = {
         material: true,
       },
     });
+
+    // Update stock for both material (consumed) and product (produced)
+    await StockService.recalculateStock(entry.date, entry.materialId);
+    await StockService.recalculateStock(entry.date, undefined, entry.size_mm);
+
+    return entry;
   },
 
   // Update production entry
@@ -137,20 +144,43 @@ export const productionService = {
       }
     }
 
-    return db.production.update({
+    const entry = await db.production.update({
       where: { id },
       data: updateData,
       include: {
         material: true,
       },
     });
+
+    // Update stock for current date/material/size
+    await StockService.recalculateStock(entry.date, entry.materialId);
+    await StockService.recalculateStock(entry.date, undefined, entry.size_mm);
+
+    // If date, material, or size changed, update old records
+    if (existing.date.getTime() !== entry.date.getTime() || 
+        existing.materialId !== entry.materialId || 
+        existing.size_mm !== entry.size_mm) {
+      await StockService.recalculateStock(existing.date, existing.materialId);
+      await StockService.recalculateStock(existing.date, undefined, existing.size_mm);
+    }
+
+    return entry;
   },
 
   // Delete production entry
   async deleteProduction(id: number) {
-    return db.production.delete({
+    const existing = await db.production.findUnique({ where: { id } });
+    if (!existing) throw new Error('Production entry not found');
+
+    const entry = await db.production.delete({
       where: { id },
     });
+
+    // Update stock
+    await StockService.recalculateStock(entry.date, entry.materialId);
+    await StockService.recalculateStock(entry.date, undefined, entry.size_mm);
+
+    return entry;
   },
 
   // Get production summary for a date range

@@ -29,7 +29,15 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await db.stock.findMany({
-      where,
+      where: {
+        ...where,
+        OR: [
+          { balance: { not: 0 } },
+          { purchase: { not: 0 } },
+          { production: { not: 0 } },
+          { sales: { not: 0 } },
+        ],
+      },
       include: {
         material: true,
       },

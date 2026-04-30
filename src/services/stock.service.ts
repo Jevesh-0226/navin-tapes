@@ -46,13 +46,29 @@ export class StockService {
       },
     });
 
+    // Sum all production for this material on this date (consumes material)
+    // For now, we assume 1:1 ratio if not specified otherwise
+    const productionAgg = await db.production.aggregate({
+      where: {
+        materialId,
+        date: {
+          gte: dayStart,
+          lt: dayEnd,
+        },
+      },
+      _sum: {
+        total_production: true,
+      },
+    });
+
     const purchase = purchaseAgg._sum.quantity_kg ?? 0;
+    const production_consumed = productionAgg._sum.total_production ?? 0;
     const opening_stock = await this.getPreviousBalance(date, materialId, null);
     
-    // Formula: balance = opening + purchase + production - sales
-    const production = 0; // Placeholder
-    const sales = 0; // Raw materials don't have sales in this module
-    const balance = opening_stock + purchase + production - sales;
+    // Formula for raw material: balance = opening + purchase - production_consumed
+    const production = 0; // Raw material doesn't have "production adds", only "consumes"
+    const sales = 0;
+    const balance = opening_stock + purchase - production_consumed;
 
     return {
       date: dayStart,
@@ -60,7 +76,7 @@ export class StockService {
       size_mm: null,
       opening_stock,
       purchase,
-      production,
+      production: -production_consumed, // Show as negative in the ledger to show consumption
       sales,
       balance,
     };
@@ -72,6 +88,34 @@ export class StockService {
   static async calculateProductStock(date: Date, size_mm: number) {
     const dayStart = startOfDay(date);
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    // Sum all production for this size on this date (adds to product stock)
+    const productionAgg = await db.production.aggregate({
+      where: {
+        size_mm,
+        date: {
+          gte: dayStart,
+          lt: dayEnd,
+        },
+      },
+      _sum: {
+        total_production: true,
+      },
+    });
+
+    // Sum all purchases for this size on this date (e.g. bought-in finished goods)
+    const purchaseAgg = await db.purchase.aggregate({
+      where: {
+        size_mm,
+        date: {
+          gte: dayStart,
+          lt: dayEnd,
+        },
+      },
+      _sum: {
+        quantity_kg: true,
+      },
+    });
 
     // Sum all sales for this size on this date
     const salesAgg = await db.sales.aggregate({
@@ -87,12 +131,12 @@ export class StockService {
       },
     });
 
+    const production = productionAgg._sum.total_production ?? 0;
+    const purchase = purchaseAgg._sum.quantity_kg ?? 0;
     const sales = salesAgg._sum.quantity ?? 0;
     const opening_stock = await this.getPreviousBalance(date, null, size_mm);
 
-    // Formula: balance = opening + purchase + production - sales
-    const purchase = 0; // Finished goods don't have purchases in this module
-    const production = 0; // Placeholder
+    // Formula for product: balance = opening + purchase + production - sales
     const balance = opening_stock + purchase + production - sales;
 
     return {
@@ -108,7 +152,7 @@ export class StockService {
   }
 
   /**
-   * Upsert stock record using the composite unique constraint
+   * Upsert stock record handling potential null values in the composite key
    */
   static async upsertStock(data: {
     date: Date;
@@ -120,25 +164,31 @@ export class StockService {
     sales: number;
     balance: number;
   }) {
-    // In Prisma, we must handle the unique constraint name correctly.
-    // Based on schema: @@unique([date, materialId, size_mm])
-    return await db.stock.upsert({
+    // Manually find existing record since Prisma upsert has issues with nulls in composite keys
+    const existing = await db.stock.findFirst({
       where: {
-        date_materialId_size_mm: {
-          date: data.date,
-          materialId: data.materialId,
-          size_mm: data.size_mm,
-        },
+        date: data.date,
+        materialId: data.materialId,
+        size_mm: data.size_mm,
       },
-      update: {
-        opening_stock: data.opening_stock,
-        purchase: data.purchase,
-        production: data.production,
-        sales: data.sales,
-        balance: data.balance,
-      },
-      create: data,
     });
+
+    if (existing) {
+      return await db.stock.update({
+        where: { id: existing.id },
+        data: {
+          opening_stock: data.opening_stock,
+          purchase: data.purchase,
+          production: data.production,
+          sales: data.sales,
+          balance: data.balance,
+        },
+      });
+    } else {
+      return await db.stock.create({
+        data,
+      });
+    }
   }
 
   /**

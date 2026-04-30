@@ -70,20 +70,20 @@ export default function Home() {
     {
       name: 'Purchase Entry',
       description: 'Record incoming raw materials and quality checks',
-      href: '/inward',
+      href: '/purchase',
       icon: '📦',
-    },
-    {
-      name: 'Production Entry',
-      description: 'Log daily production output and metrics',
-      href: '/production',
-      icon: '⚙️',
     },
     {
       name: 'Stocks',
       description: 'Track and manage daily stock balance',
-      href: '/inventory',
+      href: '/stock',
       icon: '📈',
+    },
+    {
+      name: 'Sales Entry',
+      description: 'Record product distribution to customers',
+      href: '/sales',
+      icon: '💰',
     },
   ];
 
@@ -110,22 +110,22 @@ export default function Home() {
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             <Link
-              href="/inward"
+              href="/purchase"
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
             >
-              Inward
+              Purchase
             </Link>
             <Link
-              href="/production"
+              href="/stock"
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
             >
-              Production
+              Stock
             </Link>
             <Link
-              href="/inventory"
+              href="/sales"
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
             >
-              Stocks
+              Sales
             </Link>
           </nav>
         </div>
@@ -199,7 +199,7 @@ export default function Home() {
                   <div className="text-2xl font-bold text-blue-600">
                     {stats.todayProductionCount}
                   </div>
-                  <div className="text-xs text-blue-700">Production Entries</div>
+                  <div className="text-xs text-blue-700">Sales Entries</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-blue-600">

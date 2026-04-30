@@ -55,12 +55,14 @@ export const purchaseService = {
 
   // Create purchase entry
   async create(data: any) {
-    const material = await db.material.findUnique({
-      where: { id: data.materialId },
-    });
+    if (data.materialId) {
+      const material = await db.material.findUnique({
+        where: { id: data.materialId },
+      });
 
-    if (!material) {
-      throw new Error(`Material with ID ${data.materialId} not found`);
+      if (!material) {
+        throw new Error(`Material with ID ${data.materialId} not found`);
+      }
     }
 
     const purchase = await db.purchase.create({
@@ -68,7 +70,8 @@ export const purchaseService = {
         date: new Date(data.date),
         invoice_no: data.invoice_no,
         supplier: data.supplier,
-        materialId: data.materialId,
+        materialId: data.materialId || null,
+        size_mm: data.size_mm || null,
         quantity_kg: data.quantity_kg,
         quantity_box: data.quantity_box || null,
         remarks: data.remarks || null,
@@ -76,8 +79,13 @@ export const purchaseService = {
       include: { material: true },
     });
 
-    // Update stock
-    await StockService.recalculateStock(purchase.date, purchase.materialId);
+    // Update stock for either material or size
+    if (purchase.materialId) {
+      await StockService.recalculateStock(purchase.date, purchase.materialId);
+    }
+    if (purchase.size_mm) {
+      await StockService.recalculateStock(purchase.date, undefined, purchase.size_mm);
+    }
 
     return purchase;
   },
@@ -92,7 +100,7 @@ export const purchaseService = {
         where: { id: data.materialId },
       });
       if (!material) {
-        throw new Error(`Material with ID ${data.materialId} not found`);
+        throw new Error('Material not found');
       }
     }
 
@@ -103,6 +111,7 @@ export const purchaseService = {
         ...(data.invoice_no !== undefined && { invoice_no: data.invoice_no }),
         ...(data.supplier !== undefined && { supplier: data.supplier }),
         ...(data.materialId !== undefined && { materialId: data.materialId }),
+        ...(data.size_mm !== undefined && { size_mm: data.size_mm }),
         ...(data.quantity_kg !== undefined && { quantity_kg: data.quantity_kg }),
         ...(data.quantity_box !== undefined && { quantity_box: data.quantity_box }),
         ...(data.remarks !== undefined && { remarks: data.remarks || null }),
@@ -110,12 +119,16 @@ export const purchaseService = {
       include: { material: true },
     });
 
-    // Update stock for the new date/material
-    await StockService.recalculateStock(purchase.date, purchase.materialId);
+    // Update stock for current state
+    if (purchase.materialId) await StockService.recalculateStock(purchase.date, purchase.materialId);
+    if (purchase.size_mm) await StockService.recalculateStock(purchase.date, undefined, purchase.size_mm);
     
-    // If date or material changed, also update the old record's stock
-    if (existing.date.getTime() !== purchase.date.getTime() || existing.materialId !== purchase.materialId) {
-      await StockService.recalculateStock(existing.date, existing.materialId);
+    // If date, material or size changed, also update the old record's stock
+    if (existing.date.getTime() !== purchase.date.getTime() || 
+        existing.materialId !== purchase.materialId ||
+        existing.size_mm !== purchase.size_mm) {
+      if (existing.materialId) await StockService.recalculateStock(existing.date, existing.materialId);
+      if (existing.size_mm) await StockService.recalculateStock(existing.date, undefined, existing.size_mm);
     }
 
     return purchase;
@@ -129,7 +142,8 @@ export const purchaseService = {
     const purchase = await db.purchase.delete({ where: { id } });
 
     // Update stock
-    await StockService.recalculateStock(purchase.date, purchase.materialId);
+    if (purchase.materialId) await StockService.recalculateStock(purchase.date, purchase.materialId);
+    if (purchase.size_mm) await StockService.recalculateStock(purchase.date, undefined, purchase.size_mm);
 
     return purchase;
   },

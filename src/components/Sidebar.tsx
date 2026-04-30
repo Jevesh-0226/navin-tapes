@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 const navigationItems = [
   { label: 'Dashboard', href: '/', icon: '📊' },
   { label: 'Purchase', href: '/purchase', icon: '📦' },
-  { label: 'Stock Ledger', href: '/stock', icon: '📈' },
+  { label: 'Stock', href: '/stock', icon: '📈' },
   { label: 'Sales', href: '/sales', icon: '💰' },
 ];
 
@@ -32,11 +32,10 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors border-l-4 ${
-                isActive
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors border-l-4 ${isActive
                   ? 'bg-blue-100 text-blue-600 font-medium border-l-4 border-blue-500'
                   : 'text-slate-600 hover:bg-gray-100 border-l-4 border-transparent'
-              }`}
+                }`}
             >
               <span className="text-lg">{item.icon}</span>
               <span>{item.label}</span>

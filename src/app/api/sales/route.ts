@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { salesService } from '@/services/sales.service';
 import { ZodError } from 'zod';
-import { z } from 'zod';
-
-const createSalesSchema = z.object({
-  date: z.string().datetime(),
-  customer_name: z.string().min(1),
-  size_mm: z.number().int().positive(),
-  quantity: z.number().positive(),
-  rate: z.number().positive(),
-  remarks: z.string().optional(),
-});
+import { createSalesSchema } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {

@@ -39,7 +39,7 @@ export default function StockPage() {
   const fetchStock = async () => {
     try {
       setLoading(true);
-      const response = await stockAPI.getByDate(new Date(formData.date));
+      const response = await stockAPI.getByDate(formData.date);
       setEntries(response.data?.data || []);
       setError(null);
     } catch (err) {
@@ -69,7 +69,7 @@ export default function StockPage() {
     }));
     // Fetch stock for new date
     try {
-      const response = await stockAPI.getByDate(new Date(value));
+      const response = await stockAPI.getByDate(value);
       setEntries(response.data?.data || []);
     } catch (err) {
       console.error('Error fetching stock:', err);
@@ -257,7 +257,7 @@ export default function StockPage() {
 
         {/* Table Card */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-bold mb-4">Stock Ledger - {formatDate(formData.date)}</h2>
+          <h2 className="text-lg font-bold mb-4">Stock - {formatDate(formData.date)}</h2>
 
           {entries.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No stock entries for this date</p>
@@ -278,7 +278,7 @@ export default function StockPage() {
                   {entries.map(entry => (
                     <tr key={entry.id} className="border-t hover:bg-gray-50">
                       <td className="px-4 py-2">
-                        {entry.material?.name || '-'} 
+                        {entry.material?.name || '-'}
                         {entry.size_mm ? ` / ${entry.size_mm}mm` : ''}
                       </td>
                       <td className="text-right px-4 py-2">{entry.opening_stock.toFixed(2)}</td>

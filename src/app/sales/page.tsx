@@ -269,32 +269,34 @@ export default function SalesPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 border-b">
                   <tr>
-                    <th className="text-left px-4 py-2">Date</th>
-                    <th className="text-left px-4 py-2">Customer</th>
-                    <th className="text-center px-4 py-2">Size (mm)</th>
-                    <th className="text-right px-4 py-2">Quantity</th>
-                    <th className="text-right px-4 py-2">Rate</th>
-                    <th className="text-right px-4 py-2">Amount</th>
-                    <th className="text-left px-4 py-2">Remarks</th>
-                    <th className="text-center px-4 py-2">Action</th>
+                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Date</th>
+                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Customer</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Size (mm)</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Quantity</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Rate</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Amount</th>
+                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Remarks</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {entries.map(entry => (
-                    <tr key={entry.id} className="border-t hover:bg-gray-50">
-                      <td className="px-4 py-2">{formatDate(entry.date)}</td>
-                      <td className="px-4 py-2">{entry.customer_name}</td>
-                      <td className="text-center px-4 py-2">{entry.size_mm}</td>
-                      <td className="text-right px-4 py-2">{entry.quantity}</td>
-                      <td className="text-right px-4 py-2">₹{entry.rate}</td>
-                      <td className="text-right px-4 py-2 font-semibold">₹{entry.amount.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-gray-600 text-xs">{entry.remarks || '-'}</td>
-                      <td className="text-center px-4 py-2">
+                    <tr key={entry.id} className="border-t hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 text-gray-600 tabular-nums">{formatDate(entry.date)}</td>
+                      <td className="px-6 py-4 text-gray-800 font-medium">{entry.customer_name}</td>
+                      <td className="text-center px-6 py-4 text-gray-700">{entry.size_mm}</td>
+                      <td className="text-center px-6 py-4 tabular-nums font-medium text-gray-700">{entry.quantity.toFixed(2)}</td>
+                      <td className="text-center px-6 py-4 tabular-nums text-gray-600">₹{entry.rate.toFixed(2)}</td>
+                      <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-900">₹{entry.amount.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
+                        {entry.remarks || '-'}
+                      </td>
+                      <td className="text-center px-6 py-4">
                         <button
                           onClick={() => handleDelete(entry.id)}
-                          className="text-red-600 hover:text-red-800 text-xs"
+                          className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline"
                         >
                           Delete
                         </button>
