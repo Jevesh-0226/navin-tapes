@@ -71,6 +71,19 @@ model Sales {
   @@index([date])
 }
 
+model Product {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  size_mm     Int
+
+  quantity    Float    // finished tape produced (meters)
+
+  remarks     String?
+  created_at  DateTime @default(now())
+
+  @@index([date])
+}
+
 model Stock {
   id             Int      @id @default(autoincrement())
   date           DateTime

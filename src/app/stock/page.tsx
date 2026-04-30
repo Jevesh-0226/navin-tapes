@@ -60,9 +60,12 @@ export default function StockLedgerPage() {
     fetchStock();
   }, [fetchStock]);
 
+  const rawMaterials = data.filter((item: any) => item.materialId !== null);
+  const finishedProducts = data.filter((item: any) => item.size_mm !== null);
+
   const stats = {
-    totalPurchase: data.reduce((sum: number, item: any) => sum + (item.purchase || 0), 0),
-    totalSales: data.reduce((sum: number, item: any) => sum + (item.sales || 0), 0),
+    totalPurchase: rawMaterials.reduce((sum: number, item: any) => sum + (item.purchase || 0), 0),
+    totalProduction: finishedProducts.reduce((sum: number, item: any) => sum + (item.production || 0), 0),
     netBalance: data.reduce((sum: number, item: any) => sum + (item.balance || 0), 0),
   };
 
@@ -72,8 +75,8 @@ export default function StockLedgerPage() {
         <div className="bg-white border rounded-lg shadow-sm p-8">
           <div className="flex justify-between items-start mb-8">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Stock</h1>
-              <p className="text-sm text-gray-500 mt-1">Real-time inventory tracking for factory operations.</p>
+              <h1 className="text-2xl font-semibold text-gray-900">Stock Dashboard</h1>
+              <p className="text-sm text-gray-500 mt-1">Real-time tracking of raw materials and finished tapes.</p>
             </div>
 
             <div className="bg-gray-100 px-3 py-1 rounded-md text-sm font-medium text-gray-600">
@@ -82,20 +85,14 @@ export default function StockLedgerPage() {
           </div>
 
           {/* KPI Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div className="bg-white border rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Total Purchase Today</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalPurchase.toFixed(2)}</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Material Inward (Today)</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalPurchase.toFixed(2)} kg</p>
             </div>
             <div className="bg-white border rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Total Sales Today</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalSales.toFixed(2)}</p>
-            </div>
-            <div className="bg-white border rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Net Balance</p>
-              <p className={`text-2xl font-bold mt-1 ${stats.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {stats.netBalance.toFixed(2)}
-              </p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Tape Production (Today)</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{stats.totalProduction.toFixed(2)} m</p>
             </div>
           </div>
 
@@ -105,11 +102,27 @@ export default function StockLedgerPage() {
             materials={materials}
           />
 
-          <div className="mt-4 border rounded-md overflow-hidden bg-white">
-            <StockTable data={data} loading={loading} />
+          <div className="space-y-12 mt-8">
+            {/* Section 1: Raw Materials */}
+            <section>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-blue-600 w-2 h-6 rounded-full"></div>
+                <h2 className="text-lg font-bold text-gray-800 uppercase tracking-tight">Raw Material Stock</h2>
+              </div>
+              <StockTable data={rawMaterials} loading={loading} type="material" />
+            </section>
+
+            {/* Section 2: Finished Products */}
+            <section>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-green-600 w-2 h-6 rounded-full"></div>
+                <h2 className="text-lg font-bold text-gray-800 uppercase tracking-tight">Finished Product Stock (Tapes)</h2>
+              </div>
+              <StockTable data={finishedProducts} loading={loading} type="product" />
+            </section>
           </div>
 
-          <div className="flex justify-between mt-6 text-xs text-gray-400">
+          <div className="flex justify-between mt-12 pt-6 border-t text-xs text-gray-400">
             <span>* Opening = Previous Day Closing Balance</span>
             <span>Generated at: {mounted ? new Date().toLocaleString() : 'Loading...'}</span>
           </div>

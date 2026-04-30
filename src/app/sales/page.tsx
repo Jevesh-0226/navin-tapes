@@ -25,11 +25,13 @@ export default function SalesPage() {
   const [formData, setFormData] = useState({
     date: getToday(),
     customer_name: '',
-    size_mm: '25',
+    size_mm: '12',
     quantity: '',
     rate: '',
     remarks: '',
   });
+
+  const sizes = [12, 18, 20, 24, 25, 30, 36, 40, 48, 60, 72];
 
   useEffect(() => {
     fetchSales();
@@ -82,7 +84,7 @@ export default function SalesPage() {
         setFormData({
           date: getToday(),
           customer_name: '',
-          size_mm: '25',
+          size_mm: '12',
           quantity: '',
           rate: '',
           remarks: '',
@@ -143,6 +145,7 @@ export default function SalesPage() {
                 name="date"
                 value={formData.date}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 className="w-full border rounded px-3 py-2"
                 required
               />
@@ -155,6 +158,7 @@ export default function SalesPage() {
                 name="customer_name"
                 value={formData.customer_name}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="Customer name"
                 className="w-full border rounded px-3 py-2"
                 required
@@ -167,22 +171,25 @@ export default function SalesPage() {
                 name="size_mm"
                 value={formData.size_mm}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 className="w-full border rounded px-3 py-2"
               >
-                <option value="20">20 mm</option>
-                <option value="25">25 mm</option>
-                <option value="30">30 mm</option>
-                <option value="40">40 mm</option>
+                {sizes.map(s => (
+                  <option key={s} value={s}>
+                    {s} mm
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Quantity</label>
+              <label className="block text-sm font-medium mb-1">Quantity (meters)</label>
               <input
                 type="number"
                 name="quantity"
                 value={formData.quantity}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="0.00"
                 step="0.01"
                 className="w-full border rounded px-3 py-2"
@@ -197,6 +204,7 @@ export default function SalesPage() {
                 name="rate"
                 value={formData.rate}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="0.00"
                 step="0.01"
                 className="w-full border rounded px-3 py-2"
@@ -224,6 +232,7 @@ export default function SalesPage() {
                 name="remarks"
                 value={formData.remarks}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSubmit(e as any))}
                 placeholder="Any additional notes"
                 rows={2}
                 className="w-full border rounded px-3 py-2"
@@ -246,7 +255,7 @@ export default function SalesPage() {
         {entries.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p className="text-sm text-blue-600">Total Quantity</p>
+              <p className="text-sm text-blue-600">Total Quantity (meters)</p>
               <p className="text-2xl font-bold text-blue-900">{totalQuantity.toFixed(2)}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-4 border border-green-200">
@@ -274,7 +283,7 @@ export default function SalesPage() {
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Date</th>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Customer</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Size (mm)</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Quantity</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Qty (m)</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Rate</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Amount</th>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Remarks</th>

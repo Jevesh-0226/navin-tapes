@@ -54,6 +54,14 @@ export const stockAPI = {
     api.get(`/inventory?report=true&startDate=${startDate}&endDate=${endDate}`),
 };
 
+// Product API - Finished goods production
+export const productAPI = {
+  getAll: () => api.get('/product'),
+  getByDate: (date: string) => api.get(`/product?date=${date}`),
+  create: (data: any) => api.post('/product', data),
+  delete: (id: number) => api.delete(`/product/${id}`),
+};
+
 // Backward compatibility aliases
 export const inventoryAPI = stockAPI;
 export const inwardAPI = purchaseAPI;

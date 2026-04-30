@@ -89,8 +89,8 @@ export class StockService {
     const dayStart = startOfDay(date);
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // Sum all production for this size on this date (adds to product stock)
-    const productionAgg = await db.production.aggregate({
+    // Sum all production for this size on this date (from NEW Product table)
+    const productAgg = await db.product.aggregate({
       where: {
         size_mm,
         date: {
@@ -99,11 +99,11 @@ export class StockService {
         },
       },
       _sum: {
-        total_production: true,
+        quantity: true,
       },
     });
 
-    // Sum all purchases for this size on this date (e.g. bought-in finished goods)
+    // Sum all purchases for this size on this date (if any)
     const purchaseAgg = await db.purchase.aggregate({
       where: {
         size_mm,
@@ -131,7 +131,7 @@ export class StockService {
       },
     });
 
-    const production = productionAgg._sum.total_production ?? 0;
+    const production = productAgg._sum.quantity ?? 0;
     const purchase = purchaseAgg._sum.quantity_kg ?? 0;
     const sales = salesAgg._sum.quantity ?? 0;
     const opening_stock = await this.getPreviousBalance(date, null, size_mm);
@@ -222,6 +222,17 @@ export class StockService {
       distinct: ['materialId'],
     });
 
+    const products = await db.product.findMany({
+      where: {
+        date: {
+          gte: startOfDay(date),
+          lt: new Date(startOfDay(date).getTime() + 24 * 60 * 60 * 1000),
+        },
+      },
+      select: { size_mm: true },
+      distinct: ['size_mm'],
+    });
+
     const sales = await db.sales.findMany({
       where: {
         date: {
@@ -233,12 +244,18 @@ export class StockService {
       distinct: ['size_mm'],
     });
 
+    // Combine unique sizes from both product and sales
+    const uniqueSizes = new Set([
+      ...products.map(p => p.size_mm),
+      ...sales.map(s => s.size_mm)
+    ]);
+
     for (const p of purchases) {
       await this.recalculateStock(date, p.materialId);
     }
 
-    for (const s of sales) {
-      await this.recalculateStock(date, undefined, s.size_mm);
+    for (const size of uniqueSizes) {
+      await this.recalculateStock(date, undefined, size);
     }
   }
 }

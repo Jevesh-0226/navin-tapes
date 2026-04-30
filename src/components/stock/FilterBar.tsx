@@ -19,7 +19,10 @@ export default function FilterBar({ filters, setFilters, materials }: FilterBarP
   const sizes = [12, 18, 24, 36, 48, 60, 72]; // Common tape sizes in mm
 
   return (
-    <div className="bg-gray-50 border rounded-md p-6 mb-6 text-sm">
+    <form 
+      onSubmit={(e) => e.preventDefault()}
+      className="bg-gray-50 border rounded-md p-6 mb-6 text-sm"
+    >
       <div className="flex flex-wrap gap-6 items-end">
         <div className="flex flex-col">
           <label className="text-xs font-medium text-gray-600 uppercase tracking-tight">Date</label>
@@ -49,30 +52,14 @@ export default function FilterBar({ filters, setFilters, materials }: FilterBarP
           </select>
         </div>
 
-        <div className="flex flex-col">
-          <label className="text-xs font-medium text-gray-600 uppercase tracking-tight">Size (mm)</label>
-          <select
-            name="size_mm"
-            value={filters.size_mm}
-            onChange={handleChange}
-            className="mt-1 border border-gray-300 rounded px-3 py-2 w-48 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition-shadow"
-          >
-            <option value="all">All Sizes</option>
-            {sizes.map((s) => (
-              <option key={s} value={s}>
-                {s} mm
-              </option>
-            ))}
-          </select>
-        </div>
-
         <button
-          onClick={() => setFilters({ date: '', materialId: 'all', size_mm: 'all' })}
-          className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors"
+          type="button"
+          onClick={() => setFilters({ date: '', materialId: 'all' })}
+          className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors"
         >
           Clear
         </button>
       </div>
-    </div>
+    </form>
   );
 }

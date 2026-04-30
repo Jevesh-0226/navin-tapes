@@ -44,9 +44,6 @@ export default function PurchasePage() {
       const result = await response.json();
       if (result.success) {
         setMaterials(result.data);
-        if (result.data.length > 0) {
-          setFormData(prev => ({ ...prev, materialId: result.data[0].id.toString() }));
-        }
       }
     } catch (err) {
       console.error('Failed to fetch materials:', err);
@@ -79,8 +76,8 @@ export default function PurchasePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.invoice_no || !formData.supplier || !formData.quantity_kg) {
-      setError('Please fill all required fields');
+    if (!formData.invoice_no || !formData.supplier || !formData.quantity_kg || !formData.materialId) {
+      setError('Please fill all required fields, including Material');
       return;
     }
 
@@ -161,6 +158,7 @@ export default function PurchasePage() {
                 name="date"
                 value={formData.date}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
               />
@@ -173,6 +171,7 @@ export default function PurchasePage() {
                 name="invoice_no"
                 value={formData.invoice_no}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="Invoice number"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
@@ -186,6 +185,7 @@ export default function PurchasePage() {
                 name="supplier"
                 value={formData.supplier}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="Supplier name"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 required
@@ -198,6 +198,7 @@ export default function PurchasePage() {
                 name="materialId"
                 value={formData.materialId}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                 required
               >
@@ -217,6 +218,7 @@ export default function PurchasePage() {
                 name="quantity_kg"
                 value={formData.quantity_kg}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="0.00"
                 step="0.01"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -231,6 +233,7 @@ export default function PurchasePage() {
                 name="quantity_box"
                 value={formData.quantity_box}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="0"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
@@ -242,6 +245,7 @@ export default function PurchasePage() {
                 name="remarks"
                 value={formData.remarks}
                 onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSubmit(e as any))}
                 placeholder="Any additional notes"
                 rows={2}
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
