@@ -1,7 +1,9 @@
 // API client utilities for frontend
 import axios, { AxiosError } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+// Use relative URLs by default (works in both dev and production)
+// Only use NEXT_PUBLIC_API_URL if explicitly set
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,
