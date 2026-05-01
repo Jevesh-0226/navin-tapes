@@ -6,20 +6,22 @@ export default function DatabaseInitializer() {
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
-        // Call the initialization endpoint
-        const response = await fetch('/api/init');
-        const result = await response.json();
+        // Pre-fetch materials to trigger initialization if needed
+        const response = await fetch('/api/material', { 
+          cache: 'no-store',
+          next: { revalidate: 0 }
+        });
         
-        if (result.success) {
-          console.log('Database status:', result.database || result.message);
-        } else {
-          console.error('Initialization failed:', result.error);
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Database initialized, materials loaded:', result.data?.length || 0);
         }
       } catch (error) {
-        console.error('Error initializing database:', error);
+        console.warn('Database initialization skipped:', error);
       }
     };
 
+    // Run initialization on app startup
     initializeDatabase();
   }, []);
 
