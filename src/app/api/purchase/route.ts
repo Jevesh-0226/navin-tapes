@@ -35,9 +35,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error fetching purchase:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error fetching purchase:', errorMessage);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch purchase entries' },
+      { success: false, error: 'Failed to fetch purchase entries', details: errorMessage },
       { status: 500 }
     );
   }

@@ -30,9 +30,10 @@ export async function GET(request: NextRequest) {
     const data = await salesService.getAll();
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Error fetching sales:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error fetching sales:', errorMessage);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch sales entries' },
+      { success: false, error: 'Failed to fetch sales entries', details: errorMessage },
       { status: 500 }
     );
   }
