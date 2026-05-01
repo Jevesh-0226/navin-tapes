@@ -113,8 +113,13 @@ export default function SalesPage() {
     }
   };
 
-  const totalAmount = entries.reduce((sum, e) => sum + e.amount, 0);
-  const totalQuantity = entries.reduce((sum, e) => sum + e.quantity, 0);
+  // Filter entries for today only
+  const todayEntries = entries.filter(
+    e => formatDate(e.date) === formatDate(new Date())
+  );
+
+  const totalAmount = todayEntries.reduce((sum, e) => sum + e.amount, 0);
+  const totalQuantity = todayEntries.reduce((sum, e) => sum + e.quantity, 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -252,19 +257,19 @@ export default function SalesPage() {
         </div>
 
         {/* Summary */}
-        {entries.length > 0 && (
+        {todayEntries.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p className="text-sm text-blue-600">Total Quantity (meters)</p>
+              <p className="text-sm text-blue-600">Today's Total Quantity (meters)</p>
               <p className="text-2xl font-bold text-blue-900">{totalQuantity.toFixed(2)}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-              <p className="text-sm text-green-600">Total Amount</p>
+              <p className="text-sm text-green-600">Today's Total Amount</p>
               <p className="text-2xl font-bold text-green-900">₹{totalAmount.toFixed(2)}</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <p className="text-sm text-purple-600">Entries</p>
-              <p className="text-2xl font-bold text-purple-900">{entries.length}</p>
+              <p className="text-sm text-purple-600">Today's Entries</p>
+              <p className="text-2xl font-bold text-purple-900">{todayEntries.length}</p>
             </div>
           </div>
         )}

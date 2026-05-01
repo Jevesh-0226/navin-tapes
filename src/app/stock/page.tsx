@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import StockTable from '@/components/stock/StockTable';
 import FilterBar from '@/components/stock/FilterBar';
+import { getToday } from '@/lib/utils';
 
 export default function StockLedgerPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [materials, setMaterials] = useState([]);
   const [filters, setFilters] = useState({
-    date: '',
+    date: getToday(),
     materialId: 'all',
     size_mm: 'all',
   });
@@ -69,6 +70,14 @@ export default function StockLedgerPage() {
     netBalance: data.reduce((sum: number, item: any) => sum + (item.balance || 0), 0),
   };
 
+  const getDisplayDate = () => {
+    if (filters.date) {
+      const date = new Date(filters.date);
+      return date.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+    }
+    return 'Select a Date';
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen w-full flex flex-col items-center">
       <div className="w-full max-w-6xl px-6 py-6">
@@ -87,11 +96,11 @@ export default function StockLedgerPage() {
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div className="bg-white border rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Material Inward (Today)</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Material Inward ({getDisplayDate()})</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalPurchase.toFixed(2)} kg</p>
             </div>
             <div className="bg-white border rounded-lg p-4 shadow-sm">
-              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Tape Production (Today)</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Tape Production ({getDisplayDate()})</p>
               <p className="text-2xl font-bold text-blue-600 mt-1">{stats.totalProduction.toFixed(2)} m</p>
             </div>
           </div>

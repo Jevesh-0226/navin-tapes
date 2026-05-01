@@ -1,4 +1,5 @@
 import React from 'react';
+import { getToday } from '@/lib/utils';
 
 interface FilterBarProps {
   filters: {
@@ -54,7 +55,7 @@ export default function FilterBar({ filters, setFilters, materials }: FilterBarP
 
         <button
           type="button"
-          onClick={() => setFilters({ date: '', materialId: 'all' })}
+          onClick={() => setFilters({ date: getToday(), materialId: 'all', size_mm: 'all' })}
           className="bg-gray-200 hover:bg-gray-300 px-6 py-2 rounded-md text-sm font-medium text-gray-700 transition-colors"
         >
           Clear
