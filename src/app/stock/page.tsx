@@ -44,8 +44,11 @@ export default function StockLedgerPage() {
   const fetchMaterials = async () => {
     try {
       const response = await fetch('/api/material');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
       const result = await response.json();
-      if (result.success) {
+      if (result.success && result.data) {
         setMaterials(result.data);
       }
     } catch (error) {

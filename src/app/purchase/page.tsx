@@ -23,6 +23,7 @@ export default function PurchasePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [materials, setMaterials] = useState<{ id: number; name: string }[]>([]);
+  const [materialsError, setMaterialsError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     date: getToday(),
     invoice_no: '',
@@ -41,12 +42,20 @@ export default function PurchasePage() {
   const fetchMaterials = async () => {
     try {
       const response = await fetch('/api/material');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
       const result = await response.json();
-      if (result.success) {
+      if (result.success && result.data) {
         setMaterials(result.data);
+        setMaterialsError(null);
+      } else {
+        setMaterialsError('No materials available. Please add materials first.');
       }
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch materials';
       console.error('Failed to fetch materials:', err);
+      setMaterialsError(message);
     }
   };
 
@@ -209,6 +218,9 @@ export default function PurchasePage() {
                   </option>
                 ))}
               </select>
+              {materialsError && (
+                <p className="text-red-600 text-xs mt-1">{materialsError}</p>
+              )}
             </div>
 
             <div>
