@@ -6,9 +6,10 @@ import { usePathname } from 'next/navigation';
 const navigationItems = [
   { label: 'Dashboard', href: '/', icon: '📊' },
   { label: 'Purchase', href: '/purchase', icon: '📦' },
+  { label: 'Order', href: '/order', icon: '📝' },
   { label: 'Product', href: '/product', icon: '⚙️' },
-  { label: 'Stock', href: '/stock', icon: '📈' },
   { label: 'Sales', href: '/sales', icon: '💰' },
+  { label: 'Stock', href: '/stock', icon: '📈' },
 ];
 
 export default function Sidebar() {

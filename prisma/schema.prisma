@@ -29,6 +29,8 @@ model Purchase {
   quantity_kg    Float
   quantity_box   Float?
 
+  amount         Float?
+
   remarks        String?
   created_at     DateTime @default(now())
 
@@ -69,6 +71,12 @@ model Sales {
   rate           Float
   amount         Float
 
+  colour         String?
+  product_type   String?
+  quantity_box   Float?
+  po_number      String?
+  dc_number      String?
+
   remarks        String?
   created_at     DateTime @default(now())
 
@@ -83,6 +91,8 @@ model Product {
   size_mm     Int
 
   quantity    Float    // finished tape produced (meters)
+  colour      String?
+  product_type String?
 
   remarks     String?
   created_at  DateTime @default(now())
@@ -115,4 +125,19 @@ model Stock {
   @@index([date])
   @@index([materialId])
   @@index([size_mm])
+}
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  po_number     String
+  customer_name String
+  size_mm       String
+  colour        String
+  product_type  String
+
+  quantity      Float
+  rate          Float
+  amount        Float
+
+  created_at    DateTime @default(now())
 }

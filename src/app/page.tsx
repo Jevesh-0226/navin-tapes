@@ -79,22 +79,28 @@ export default function Home() {
       icon: '📦',
     },
     {
+      name: 'Order',
+      description: 'Customer orders and tracking',
+      href: '/order',
+      icon: '📝',
+    },
+    {
       name: 'Product',
       description: 'Log finished goods manufacturing output',
       href: '/product',
       icon: '⚙️',
     },
     {
-      name: 'Stock',
-      description: 'Track and manage daily stock balance',
-      href: '/stock',
-      icon: '📈',
-    },
-    {
       name: 'Sales',
       description: 'Record product distribution to customers',
       href: '/sales',
       icon: '💰',
+    },
+    {
+      name: 'Stock',
+      description: 'Track and manage daily stock balance',
+      href: '/stock',
+      icon: '📈',
     },
   ];
 
@@ -127,22 +133,28 @@ export default function Home() {
               Purchase
             </Link>
             <Link
+              href="/order"
+              className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
+            >
+              Order
+            </Link>
+            <Link
               href="/product"
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
             >
               Product
             </Link>
             <Link
-              href="/stock"
-              className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
-            >
-              Stock
-            </Link>
-            <Link
               href="/sales"
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
             >
               Sales
+            </Link>
+            <Link
+              href="/stock"
+              className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
+            >
+              Stock
             </Link>
           </nav>
         </div>
@@ -169,7 +181,7 @@ export default function Home() {
 
         {/* Quick Access Cards */}
         <section className="max-w-5xl mx-auto px-6 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {quickAccessCards.map((card) => (
               <Link key={card.name} href={card.href}>
                 <div className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer h-full">

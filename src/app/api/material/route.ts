@@ -8,6 +8,9 @@ export const revalidate = 300;
 export async function GET() {
   try {
     const data = await db.material.findMany({
+      where: {
+        name: { notIn: ['Cotton', 'Nylon'] }
+      },
       select: { id: true, name: true },
       orderBy: { name: 'asc' },
     });

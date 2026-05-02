@@ -13,6 +13,11 @@ interface Sales {
   quantity: number;
   rate: number;
   amount: number;
+  colour?: string | null;
+  product_type?: string | null;
+  quantity_box?: number | null;
+  po_number: string;
+  dc_number?: string | null;
   remarks?: string | null;
 }
 
@@ -28,10 +33,17 @@ export default function SalesPage() {
     size_mm: '3',
     quantity: '',
     rate: '',
+    colour: '',
+    product_type: '',
+    quantity_box: '',
+    po_number: '',
+    dc_number: '',
     remarks: '',
   });
 
   const sizes = [3, 4, 6, 8, 10, 15, 18, 20, 25, 30, 35, 40, 45, 50, 55];
+  const COLOURS = ['Black', 'White', 'Other'];
+  const PRODUCT_TYPES = ['Rubber Elastic', '840 Lycra', '840 Lycra Finishing', '1120 Lycra Finishing'];
 
   useEffect(() => {
     fetchSales();
@@ -69,8 +81,8 @@ export default function SalesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.customer_name || !formData.quantity || !formData.rate) {
-      setError('Please fill all required fields');
+    if (!formData.customer_name || !formData.quantity || !formData.rate || !formData.po_number) {
+      setError('Please fill all required fields, including PO Number');
       return;
     }
 
@@ -83,6 +95,11 @@ export default function SalesPage() {
         size_mm: parseInt(formData.size_mm),
         quantity: parseFloat(formData.quantity),
         rate: parseFloat(formData.rate),
+        colour: formData.colour || null,
+        product_type: formData.product_type || null,
+        quantity_box: formData.quantity_box ? parseFloat(formData.quantity_box) : null,
+        po_number: formData.po_number,
+        dc_number: formData.dc_number || null,
         remarks: formData.remarks || null,
       });
 
@@ -95,6 +112,11 @@ export default function SalesPage() {
           size_mm: '3',
           quantity: '',
           rate: '',
+          colour: '',
+          product_type: '',
+          quantity_box: '',
+          po_number: '',
+          dc_number: '',
           remarks: '',
         });
         // Add new entry to state immediately without waiting for full refetch
@@ -192,8 +214,9 @@ export default function SalesPage() {
                 value={formData.size_mm}
                 onChange={handleInputChange}
                 onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 bg-white"
               >
+                <option value="0">Unsize</option>
                 {sizes.map(s => (
                   <option key={s} value={s}>
                     {s} mm
@@ -246,7 +269,79 @@ export default function SalesPage() {
               />
             </div>
 
-            <div className="lg:col-span-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">Colour</label>
+              <select
+                name="colour"
+                value={formData.colour}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                className="w-full border rounded px-3 py-2 bg-white"
+              >
+                <option value="">Select Colour</option>
+                {COLOURS.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Type of Product</label>
+              <select
+                name="product_type"
+                value={formData.product_type}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                className="w-full border rounded px-3 py-2 bg-white"
+              >
+                <option value="">Select Type</option>
+                {PRODUCT_TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Qty (box)</label>
+              <input
+                type="number"
+                name="quantity_box"
+                value={formData.quantity_box}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                placeholder="0"
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">PO Number <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                name="po_number"
+                value={formData.po_number}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                placeholder="PO Number"
+                className="w-full border rounded px-3 py-2"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">DC Number</label>
+              <input
+                type="text"
+                name="dc_number"
+                value={formData.dc_number}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                placeholder="DC Number"
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+
+            <div className="lg:col-span-1">
               <label className="block text-sm font-medium mb-1">Remarks</label>
               <textarea
                 name="remarks"
@@ -302,8 +397,11 @@ export default function SalesPage() {
                   <tr>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Date</th>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Customer</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Size (mm)</th>
+                    <th className="text-left px-6 py-3 font-semibold text-gray-700">PO #</th>
+                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Type / Colour</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Size</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Qty (m)</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Box</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Rate</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Amount</th>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Remarks</th>
@@ -315,8 +413,14 @@ export default function SalesPage() {
                     <tr key={entry.id} className="border-t hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 text-gray-600 tabular-nums">{formatDate(entry.date)}</td>
                       <td className="px-6 py-4 text-gray-800 font-medium">{entry.customer_name}</td>
-                      <td className="text-center px-6 py-4 text-gray-700">{entry.size_mm}</td>
+                      <td className="px-6 py-4 text-gray-700 text-xs">{entry.po_number || '-'}</td>
+                      <td className="px-6 py-4 text-gray-700 text-xs">
+                        {entry.product_type || '-'} <br/>
+                        <span className="text-gray-500">{entry.colour || '-'}</span>
+                      </td>
+                      <td className="text-center px-6 py-4 text-gray-700">{entry.size_mm === 0 ? 'Unsize' : `${entry.size_mm} mm`}</td>
                       <td className="text-center px-6 py-4 tabular-nums font-medium text-gray-700">{entry.quantity.toFixed(2)}</td>
+                      <td className="text-center px-6 py-4 tabular-nums text-gray-600">{entry.quantity_box || '-'}</td>
                       <td className="text-center px-6 py-4 tabular-nums text-gray-600">₹{entry.rate.toFixed(2)}</td>
                       <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-900">₹{entry.amount.toFixed(2)}</td>
                       <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>

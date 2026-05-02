@@ -15,7 +15,9 @@ async function main() {
     { name: "Rubber" },
     { name: "Cotton" },
     { name: "Polyester" },
-    { name: "Nylon" }
+    { name: "Nylon" },
+    { name: "Needle" },
+    { name: "Cardboard Box" }
   ];
 
   for (const material of materials) {

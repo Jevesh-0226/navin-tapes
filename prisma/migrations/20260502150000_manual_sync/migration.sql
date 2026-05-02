@@ -1,0 +1,35 @@
+-- Manual schema sync for missing columns and Order table
+
+ALTER TABLE "Purchase"
+ADD COLUMN IF NOT EXISTS "amount" DOUBLE PRECISION;
+
+ALTER TABLE "Sales"
+ADD COLUMN IF NOT EXISTS "colour" TEXT;
+ALTER TABLE "Sales"
+ADD COLUMN IF NOT EXISTS "product_type" TEXT;
+ALTER TABLE "Sales"
+ADD COLUMN IF NOT EXISTS "quantity_box" DOUBLE PRECISION;
+ALTER TABLE "Sales"
+ADD COLUMN IF NOT EXISTS "po_number" TEXT;
+ALTER TABLE "Sales"
+ADD COLUMN IF NOT EXISTS "dc_number" TEXT;
+
+ALTER TABLE "Product"
+ADD COLUMN IF NOT EXISTS "colour" TEXT;
+ALTER TABLE "Product"
+ADD COLUMN IF NOT EXISTS "product_type" TEXT;
+
+CREATE TABLE IF NOT EXISTS "Order" (
+  "id" SERIAL NOT NULL,
+  "po_number" TEXT NOT NULL,
+  "customer_name" TEXT NOT NULL,
+  "size_mm" TEXT NOT NULL,
+  "colour" TEXT NOT NULL,
+  "product_type" TEXT NOT NULL,
+  "quantity" DOUBLE PRECISION NOT NULL,
+  "rate" DOUBLE PRECISION NOT NULL,
+  "amount" DOUBLE PRECISION NOT NULL,
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT "Order_pkey" PRIMARY KEY ("id")
+);

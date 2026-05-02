@@ -14,6 +14,7 @@ interface Purchase {
   materialId: number;
   quantity_kg: number;
   quantity_box?: number | null;
+  amount?: number | null;
   remarks?: string | null;
 }
 
@@ -31,6 +32,7 @@ export default function PurchasePage() {
     materialId: '',
     quantity_kg: '',
     quantity_box: '',
+    amount: '',
     remarks: '',
   });
 
@@ -107,6 +109,7 @@ export default function PurchasePage() {
         size_mm: null,
         quantity_kg: parseFloat(formData.quantity_kg),
         quantity_box: formData.quantity_box ? parseFloat(formData.quantity_box) : null,
+        amount: formData.amount ? parseFloat(formData.amount) : null,
         remarks: formData.remarks || null,
       });
 
@@ -120,6 +123,7 @@ export default function PurchasePage() {
           supplier: '',
           quantity_kg: '',
           quantity_box: '',
+          amount: '',
           remarks: '',
         }));
         // Add new entry to state immediately without waiting for full refetch
@@ -264,6 +268,20 @@ export default function PurchasePage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Amount</label>
+              <input
+                type="number"
+                name="amount"
+                value={formData.amount}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                placeholder="0.00"
+                step="0.01"
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+
             <div className="lg:col-span-2">
               <label className="block text-sm font-medium mb-1 text-gray-700">Remarks</label>
               <textarea
@@ -308,6 +326,7 @@ export default function PurchasePage() {
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Material</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Qty (kg)</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Qty (box)</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Amount</th>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Remarks</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Action</th>
                   </tr>
@@ -323,6 +342,7 @@ export default function PurchasePage() {
                         </td>
                         <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-800">{entry.quantity_kg.toFixed(2)}</td>
                         <td className="text-center px-6 py-4 tabular-nums text-gray-600">{entry.quantity_box || '-'}</td>
+                        <td className="text-center px-6 py-4 tabular-nums text-gray-800">{entry.amount?.toFixed(2) || '-'}</td>
                         <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
                           {entry.remarks || '-'}
                         </td>

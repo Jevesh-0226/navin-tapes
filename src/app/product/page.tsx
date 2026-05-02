@@ -10,6 +10,8 @@ interface ProductEntry {
   date: string;
   size_mm: number;
   quantity: number;
+  colour?: string | null;
+  product_type?: string | null;
   remarks?: string | null;
 }
 
@@ -23,10 +25,14 @@ export default function ProductPage() {
     date: getToday(),
     size_mm: '3',
     quantity: '',
+    colour: '',
+    product_type: '',
     remarks: '',
   });
 
   const sizes = [3, 4, 6, 8, 10, 15, 18, 20, 25, 30, 35, 40, 45, 50, 55];
+  const COLOURS = ['Black', 'White', 'Other'];
+  const PRODUCT_TYPES = ['Rubber Elastic', '840 Lycra', '840 Lycra Finishing', '1120 Lycra Finishing'];
 
   useEffect(() => {
     fetchProducts();
@@ -76,6 +82,8 @@ export default function ProductPage() {
         date: formData.date,
         size_mm: parseInt(formData.size_mm),
         quantity: parseFloat(formData.quantity),
+        colour: formData.colour || null,
+        product_type: formData.product_type || null,
         remarks: formData.remarks || null,
       });
 
@@ -85,6 +93,8 @@ export default function ProductPage() {
         setFormData(prev => ({
           ...prev,
           quantity: '',
+          colour: '',
+          product_type: '',
           remarks: '',
         }));
         // Add new entry to state immediately without waiting for full refetch
@@ -163,6 +173,7 @@ export default function ProductPage() {
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                 required
               >
+                <option value="0">Unsize</option>
                 {sizes.map(s => (
                   <option key={s} value={s}>
                     {s} mm
@@ -187,6 +198,38 @@ export default function ProductPage() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Colour</label>
+              <select
+                name="colour"
+                value={formData.colour}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+              >
+                <option value="">Select Colour</option>
+                {COLOURS.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Type of Product</label>
+              <select
+                name="product_type"
+                value={formData.product_type}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+              >
+                <option value="">Select Type</option>
+                {PRODUCT_TYPES.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="lg:col-span-2">
               <label className="block text-sm font-medium mb-1 text-gray-700">Remarks</label>
               <textarea
                 name="remarks"
@@ -226,6 +269,7 @@ export default function ProductPage() {
                   <tr>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Date</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Size (mm)</th>
+                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Type / Colour</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Quantity (m)</th>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Remarks</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Action</th>
@@ -235,7 +279,11 @@ export default function ProductPage() {
                   {entries.map(entry => (
                     <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
                       <td className="px-6 py-4 text-gray-600 tabular-nums">{formatDate(entry.date)}</td>
-                      <td className="text-center px-6 py-4 text-gray-900 font-medium">{entry.size_mm} mm</td>
+                      <td className="text-center px-6 py-4 text-gray-900 font-medium">{entry.size_mm === 0 ? 'Unsize' : `${entry.size_mm} mm`}</td>
+                      <td className="px-6 py-4 text-gray-700 text-xs">
+                        {entry.product_type || '-'} <br/>
+                        <span className="text-gray-500">{entry.colour || '-'}</span>
+                      </td>
                       <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-800">{entry.quantity.toFixed(2)}</td>
                       <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
                         {entry.remarks || '-'}
