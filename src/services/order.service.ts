@@ -3,7 +3,45 @@ import db from '@/lib/db';
 export const orderService = {
   async getAll() {
     const orders = await db.order.findMany({
-      orderBy: { created_at: 'desc' },
+      orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
+    });
+
+    const ordersWithDelivery = await Promise.all(
+      orders.map(async (order) => {
+        const sales = await db.sales.findMany({
+          where: {
+            po_number: order.po_number,
+            customer_name: order.customer_name,
+          },
+          select: { quantity: true },
+        });
+
+        const delivered_quantity = sales.reduce((sum, sale) => sum + sale.quantity, 0);
+        const status = delivered_quantity >= order.quantity ? 'COMPLETED' : 'PENDING';
+
+        return {
+          ...order,
+          delivered_quantity,
+          status,
+        };
+      })
+    );
+
+    return ordersWithDelivery;
+  },
+
+  async getByDate(date: Date) {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const orders = await db.order.findMany({
+      where: {
+        date: { gte: startOfDay, lte: endOfDay },
+      },
+      orderBy: [{ date: 'desc' }, { created_at: 'desc' }],
     });
 
     const ordersWithDelivery = await Promise.all(
@@ -60,6 +98,7 @@ export const orderService = {
 
     const order = await db.order.create({
       data: {
+        date: new Date(data.date),
         po_number: data.po_number,
         customer_name: data.customer_name,
         size_mm: data.size_mm,
@@ -78,6 +117,7 @@ export const orderService = {
     const existing = await db.order.findUnique({ where: { id } });
     if (!existing) throw new Error('Order not found');
 
+    const date = data.date ?? existing.date;
     const quantity = data.quantity ?? existing.quantity;
     const rate = data.rate ?? existing.rate;
     const amount = quantity * rate;
@@ -85,6 +125,7 @@ export const orderService = {
     const order = await db.order.update({
       where: { id },
       data: {
+        date: date instanceof Date ? date : new Date(date),
         po_number: data.po_number ?? existing.po_number,
         customer_name: data.customer_name ?? existing.customer_name,
         size_mm: data.size_mm ?? existing.size_mm,

@@ -10,6 +10,7 @@ interface ProductEntry {
   date: string;
   size_mm: number;
   quantity: number;
+  quantity_box?: number | null;
   colour?: string | null;
   product_type?: string | null;
   remarks?: string | null;
@@ -25,6 +26,7 @@ export default function ProductPage() {
     date: getToday(),
     size_mm: '3',
     quantity: '',
+    quantity_box: '',
     colour: '',
     product_type: '',
     remarks: '',
@@ -82,6 +84,7 @@ export default function ProductPage() {
         date: formData.date,
         size_mm: parseInt(formData.size_mm),
         quantity: parseFloat(formData.quantity),
+        quantity_box: formData.quantity_box ? parseFloat(formData.quantity_box) : null,
         colour: formData.colour || null,
         product_type: formData.product_type || null,
         remarks: formData.remarks || null,
@@ -93,6 +96,7 @@ export default function ProductPage() {
         setFormData(prev => ({
           ...prev,
           quantity: '',
+          quantity_box: '',
           colour: '',
           product_type: '',
           remarks: '',
@@ -198,6 +202,20 @@ export default function ProductPage() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Qty (box)</label>
+              <input
+                type="number"
+                name="quantity_box"
+                value={formData.quantity_box}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
+                placeholder="0"
+                step="0.01"
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Colour</label>
               <select
                 name="colour"
@@ -264,31 +282,42 @@ export default function ProductPage() {
             </div>
           ) : (
             <div className="overflow-x-auto border rounded-md">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
+                <colgroup>
+                  <col style={{ width: '14.2857%' }} />
+                  <col style={{ width: '14.2857%' }} />
+                  <col style={{ width: '14.2857%' }} />
+                  <col style={{ width: '14.2857%' }} />
+                  <col style={{ width: '14.2857%' }} />
+                  <col style={{ width: '14.2857%' }} />
+                  <col style={{ width: '14.2857%' }} />
+                </colgroup>
                 <thead className="bg-gray-100 border-b">
                   <tr>
-                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Date</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Size (mm)</th>
-                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Type / Colour</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Quantity (m)</th>
-                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Remarks</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Action</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Date</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Size (mm)</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Type / Colour</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Quantity (m)</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Qty (box)</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Remarks</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {entries.map(entry => (
                     <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="px-6 py-4 text-gray-600 tabular-nums">{formatDate(entry.date)}</td>
-                      <td className="text-center px-6 py-4 text-gray-900 font-medium">{entry.size_mm === 0 ? 'Unsize' : `${entry.size_mm} mm`}</td>
-                      <td className="px-6 py-4 text-gray-700 text-xs">
+                      <td className="px-3 py-4 text-gray-600 tabular-nums">{formatDate(entry.date)}</td>
+                      <td className="text-center px-3 py-4 text-gray-900 font-medium">{entry.size_mm === 0 ? 'Unsize' : `${entry.size_mm} mm`}</td>
+                      <td className="px-3 py-4 text-gray-700 text-xs">
                         {entry.product_type || '-'} <br/>
                         <span className="text-gray-500">{entry.colour || '-'}</span>
                       </td>
-                      <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-800">{entry.quantity.toFixed(2)}</td>
-                      <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
+                      <td className="text-center px-3 py-4 tabular-nums font-bold text-gray-800">{entry.quantity.toFixed(2)}</td>
+                      <td className="text-center px-3 py-4 tabular-nums text-gray-600">{entry.quantity_box ?? '-'}</td>
+                      <td className="px-3 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
                         {entry.remarks || '-'}
                       </td>
-                      <td className="text-center px-6 py-4">
+                      <td className="text-center px-3 py-4">
                         <button
                           onClick={() => handleDelete(entry.id)}
                           className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline"

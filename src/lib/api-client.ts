@@ -67,6 +67,7 @@ export const productAPI = {
 // Order API
 export const orderAPI = {
   getAll: () => api.get('/order'),
+  getByDate: (date: string) => api.get(`/order?date=${date}`),
   getById: (id: number) => api.get(`/order/${id}`),
   create: (data: any) => api.post('/order', data),
   update: (id: number, data: any) => api.put(`/order/${id}`, data),

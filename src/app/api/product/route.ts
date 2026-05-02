@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         date: true,
         size_mm: true,
         quantity: true,
+        quantity_box: true,
         colour: true,
         product_type: true,
         remarks: true,
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { date, size_mm, quantity, colour, product_type, remarks } = body;
+    const { date, size_mm, quantity, quantity_box, colour, product_type, remarks } = body;
 
     if (!date || !size_mm || !quantity) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
         date: new Date(date),
         size_mm: parseInt(size_mm),
         quantity: parseFloat(quantity),
+        quantity_box: quantity_box ? parseFloat(quantity_box) : null,
         colour: colour || null,
         product_type: product_type || null,
         remarks: remarks || null,

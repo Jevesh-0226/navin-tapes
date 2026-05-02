@@ -14,7 +14,7 @@ async function main() {
     { name: "Lycra" },
     { name: "Rubber" },
     { name: "Cotton" },
-    { name: "Polyester" },
+    { name: "Yarn" },
     { name: "Nylon" },
     { name: "Needle" },
     { name: "Cardboard Box" }

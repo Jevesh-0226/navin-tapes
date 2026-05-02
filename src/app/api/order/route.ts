@@ -3,9 +3,13 @@ import { orderService } from '@/services/order.service';
 import { createOrderSchema } from '@/lib/validation';
 import { ZodError } from 'zod';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const data = await orderService.getAll();
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+
+    const selectedDate = date ? new Date(`${date}T00:00:00`) : null;
+    const data = selectedDate ? await orderService.getByDate(selectedDate) : await orderService.getAll();
     return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('Error fetching orders:', error);

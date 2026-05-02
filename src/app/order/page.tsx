@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { orderAPI, getErrorMessage } from '@/lib/api-client';
+import { getToday, formatDate } from '@/lib/utils';
 
 interface Order {
   id: number;
+  date: string;
   po_number: string;
   customer_name: string;
   size_mm: string;
@@ -25,6 +27,7 @@ export default function OrderPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
+    date: getToday(),
     po_number: '',
     customer_name: '',
     size_mm: '3',
@@ -39,18 +42,18 @@ export default function OrderPage() {
   const PRODUCT_TYPES = ['Rubber Elastic', '840 Lycra', '840 Lycra Finishing', '1120 Lycra Finishing'];
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(formData.date);
     return () => {
       setLoading(false);
       setError(null);
       setSuccess(null);
     };
-  }, []);
+  }, [formData.date]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (date: string) => {
     try {
       setLoading(true);
-      const response = await orderAPI.getAll();
+      const response = await orderAPI.getByDate(date);
       setEntries(response.data?.data || []);
       setError(null);
     } catch (err) {
@@ -82,6 +85,7 @@ export default function OrderPage() {
     setError(null);
     try {
       const response = await orderAPI.create({
+        date: formData.date,
         po_number: formData.po_number,
         customer_name: formData.customer_name,
         size_mm: formData.size_mm,
@@ -95,6 +99,7 @@ export default function OrderPage() {
         setSuccess('Order created successfully');
         setTimeout(() => setSuccess(null), 3000);
         setFormData({
+          date: formData.date,
           po_number: '',
           customer_name: '',
           size_mm: '3',
@@ -110,7 +115,7 @@ export default function OrderPage() {
           delivered_quantity: 0,
           status: 'PENDING'
         };
-        setEntries([newEntry, ...entries]);
+        setEntries(prev => [newEntry, ...prev]);
       }
     } catch (err) {
       setError(getErrorMessage(err));
@@ -156,7 +161,19 @@ export default function OrderPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Date <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                required
+              />
+            </div>
+
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">PO Number <span className="text-red-500">*</span></label>
               <input
@@ -292,32 +309,45 @@ export default function OrderPage() {
             </div>
           ) : (
             <div className="overflow-x-auto border rounded-md">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
+                <colgroup>
+                  <col style={{ width: '11.11%' }} />
+                  <col style={{ width: '11.11%' }} />
+                  <col style={{ width: '11.11%' }} />
+                  <col style={{ width: '11.11%' }} />
+                  <col style={{ width: '11.11%' }} />
+                  <col style={{ width: '11.11%' }} />
+                  <col style={{ width: '11.11%' }} />
+                  <col style={{ width: '11.11%' }} />
+                  <col style={{ width: '11.11%' }} />
+                </colgroup>
                 <thead className="bg-gray-100 border-b">
                   <tr>
-                    <th className="text-left px-6 py-3 font-semibold text-gray-700">PO Number</th>
-                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Customer</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Size</th>
-                    <th className="text-left px-6 py-3 font-semibold text-gray-700">Type / Colour</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Ordered Qty</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Delivered Qty</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Status</th>
-                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Action</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Date</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700">PO Number</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Customer</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Size</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Type / Colour</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Ordered Qty</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Delivered Qty</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Status</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {entries.map(entry => (
                     <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="px-6 py-4 text-gray-700 font-medium">{entry.po_number}</td>
-                      <td className="px-6 py-4 text-gray-800">{entry.customer_name}</td>
-                      <td className="text-center px-6 py-4 text-gray-700">{entry.size_mm === 'Unsize' ? entry.size_mm : `${entry.size_mm} mm`}</td>
-                      <td className="px-6 py-4 text-gray-700 text-xs">
+                      <td className="px-3 py-4 text-gray-600 tabular-nums">{formatDate(entry.date)}</td>
+                      <td className="px-3 py-4 text-gray-700 font-medium">{entry.po_number}</td>
+                      <td className="px-3 py-4 text-gray-800">{entry.customer_name}</td>
+                      <td className="text-center px-3 py-4 text-gray-700">{entry.size_mm === 'Unsize' ? entry.size_mm : `${entry.size_mm} mm`}</td>
+                      <td className="px-3 py-4 text-gray-700 text-xs">
                         {entry.product_type} <br/>
                         <span className="text-gray-500">{entry.colour}</span>
                       </td>
-                      <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-800">{entry.quantity.toFixed(2)}</td>
-                      <td className="text-center px-6 py-4 tabular-nums font-medium text-blue-600">{entry.delivered_quantity.toFixed(2)}</td>
-                      <td className="text-center px-6 py-4">
+                      <td className="text-center px-3 py-4 tabular-nums font-bold text-gray-800">{entry.quantity.toFixed(2)}</td>
+                      <td className="text-center px-3 py-4 tabular-nums font-medium text-blue-600">{entry.delivered_quantity.toFixed(2)}</td>
+                      <td className="text-center px-3 py-4">
                         {entry.status === 'COMPLETED' ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
                             ✔ Completed
@@ -328,7 +358,7 @@ export default function OrderPage() {
                           </span>
                         )}
                       </td>
-                      <td className="text-center px-6 py-4">
+                      <td className="text-center px-3 py-4">
                         <button
                           onClick={() => handleDelete(entry.id)}
                           className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline"

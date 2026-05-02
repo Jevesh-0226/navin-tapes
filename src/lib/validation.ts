@@ -40,6 +40,7 @@ export const createSalesSchema = z.object({
 
 // Order Validation
 export const createOrderSchema = z.object({
+  date: z.coerce.date(),
   po_number: z.string().min(1, 'PO Number is required'),
   customer_name: z.string().min(1, 'Customer name required'),
   size_mm: z.string().min(1, 'Size is required'),
