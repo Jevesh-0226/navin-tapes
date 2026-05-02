@@ -35,6 +35,12 @@ export default function SalesPage() {
 
   useEffect(() => {
     fetchSales();
+    // Cleanup: clear loading and messages when component unmounts
+    return () => {
+      setLoading(false);
+      setError(null);
+      setSuccess(null);
+    };
   }, []);
 
   const fetchSales = async () => {
@@ -68,6 +74,8 @@ export default function SalesPage() {
       return;
     }
 
+    setLoading(true);
+    setError(null);
     try {
       const response = await salesAPI.create({
         date: formData.date,
@@ -80,6 +88,7 @@ export default function SalesPage() {
 
       if (response.data?.success) {
         setSuccess('Sales entry created successfully');
+        setTimeout(() => setSuccess(null), 3000);
         setFormData({
           date: getToday(),
           customer_name: '',
@@ -95,6 +104,8 @@ export default function SalesPage() {
       }
     } catch (err) {
       setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,6 +116,7 @@ export default function SalesPage() {
     const previousEntries = entries;
     setEntries(entries.filter(e => e.id !== id));
     setSuccess('Sales entry deleted');
+    setTimeout(() => setSuccess(null), 3000);
 
     try {
       await salesAPI.delete(id);

@@ -37,6 +37,12 @@ export default function PurchasePage() {
   useEffect(() => {
     fetchPurchases();
     fetchMaterials();
+    // Cleanup: clear loading and messages when component unmounts
+    return () => {
+      setLoading(false);
+      setError(null);
+      setSuccess(null);
+    };
   }, []);
 
   const fetchMaterials = async () => {
@@ -90,6 +96,8 @@ export default function PurchasePage() {
       return;
     }
 
+    setLoading(true);
+    setError(null);
     try {
       const response = await purchaseAPI.create({
         date: formData.date,
@@ -104,6 +112,7 @@ export default function PurchasePage() {
 
       if (response.data?.success) {
         setSuccess('Purchase entry created successfully');
+        setTimeout(() => setSuccess(null), 3000);
         setFormData(prev => ({
           ...prev,
           date: getToday(),
@@ -120,6 +129,8 @@ export default function PurchasePage() {
       }
     } catch (err) {
       setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -129,8 +140,7 @@ export default function PurchasePage() {
     // Optimistic update - remove from UI immediately
     const previousEntries = entries;
     setEntries(entries.filter(e => e.id !== id));
-    setSuccess('Purchase entry deleted');
-
+    setSuccess('Purchase entry deleted');    setTimeout(() => setSuccess(null), 3000);
     try {
       await purchaseAPI.delete(id);
     } catch (err) {

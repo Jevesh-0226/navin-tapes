@@ -30,6 +30,12 @@ export default function ProductPage() {
 
   useEffect(() => {
     fetchProducts();
+    // Cleanup: clear loading and messages when component unmounts
+    return () => {
+      setLoading(false);
+      setError(null);
+      setSuccess(null);
+    };
   }, []);
 
   const fetchProducts = async () => {
@@ -63,6 +69,8 @@ export default function ProductPage() {
       return;
     }
 
+    setLoading(true);
+    setError(null);
     try {
       const response = await productAPI.create({
         date: formData.date,
@@ -73,6 +81,7 @@ export default function ProductPage() {
 
       if (response.data?.success) {
         setSuccess('Product entry created successfully');
+        setTimeout(() => setSuccess(null), 3000);
         setFormData(prev => ({
           ...prev,
           quantity: '',
@@ -85,6 +94,8 @@ export default function ProductPage() {
       }
     } catch (err) {
       setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,6 +106,7 @@ export default function ProductPage() {
     const previousEntries = entries;
     setEntries(entries.filter(e => e.id !== id));
     setSuccess('Product entry deleted');
+    setTimeout(() => setSuccess(null), 3000);
 
     try {
       await productAPI.delete(id);
