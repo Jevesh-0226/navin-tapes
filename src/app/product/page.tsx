@@ -64,7 +64,6 @@ export default function ProductPage() {
     }
 
     try {
-      setLoading(true);
       const response = await productAPI.create({
         date: formData.date,
         size_mm: parseInt(formData.size_mm),
@@ -79,27 +78,31 @@ export default function ProductPage() {
           quantity: '',
           remarks: '',
         }));
-        fetchProducts();
+        // Add new entry to state immediately without waiting for full refetch
+        if (response.data?.data) {
+          setEntries([response.data.data, ...entries]);
+        }
       }
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure?')) return;
 
+    // Optimistic update - remove from UI immediately
+    const previousEntries = entries;
+    setEntries(entries.filter(e => e.id !== id));
+    setSuccess('Product entry deleted');
+
     try {
-      setLoading(true);
       await productAPI.delete(id);
-      setSuccess('Product entry deleted');
-      fetchProducts();
     } catch (err) {
+      // Revert on error
+      setEntries(previousEntries);
       setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
+      setSuccess(null);
     }
   };
 

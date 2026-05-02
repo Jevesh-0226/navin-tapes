@@ -69,7 +69,6 @@ export default function SalesPage() {
     }
 
     try {
-      setLoading(true);
       const response = await salesAPI.create({
         date: formData.date,
         customer_name: formData.customer_name,
@@ -89,27 +88,31 @@ export default function SalesPage() {
           rate: '',
           remarks: '',
         });
-        fetchSales();
+        // Add new entry to state immediately without waiting for full refetch
+        if (response.data?.data) {
+          setEntries([response.data.data, ...entries]);
+        }
       }
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure?')) return;
 
+    // Optimistic update - remove from UI immediately
+    const previousEntries = entries;
+    setEntries(entries.filter(e => e.id !== id));
+    setSuccess('Sales entry deleted');
+
     try {
-      setLoading(true);
       await salesAPI.delete(id);
-      setSuccess('Sales entry deleted');
-      fetchSales();
     } catch (err) {
+      // Revert on error
+      setEntries(previousEntries);
       setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
+      setSuccess(null);
     }
   };
 

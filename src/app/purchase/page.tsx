@@ -91,7 +91,6 @@ export default function PurchasePage() {
     }
 
     try {
-      setLoading(true);
       const response = await purchaseAPI.create({
         date: formData.date,
         invoice_no: formData.invoice_no,
@@ -114,27 +113,31 @@ export default function PurchasePage() {
           quantity_box: '',
           remarks: '',
         }));
-        fetchPurchases();
+        // Add new entry to state immediately without waiting for full refetch
+        if (response.data?.data) {
+          setEntries([response.data.data, ...entries]);
+        }
       }
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure?')) return;
 
+    // Optimistic update - remove from UI immediately
+    const previousEntries = entries;
+    setEntries(entries.filter(e => e.id !== id));
+    setSuccess('Purchase entry deleted');
+
     try {
-      setLoading(true);
       await purchaseAPI.delete(id);
-      setSuccess('Purchase entry deleted');
-      fetchPurchases();
     } catch (err) {
+      // Revert on error
+      setEntries(previousEntries);
       setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
+      setSuccess(null);
     }
   };
 
