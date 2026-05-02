@@ -35,6 +35,8 @@ model Purchase {
   material Material? @relation(fields: [materialId], references: [id])
 
   @@index([date])
+  @@index([materialId])
+  @@index([created_at])
 }
 
 model Production {
@@ -53,6 +55,8 @@ model Production {
   material Material @relation(fields: [materialId], references: [id])
 
   @@index([date])
+  @@index([materialId])
+  @@index([created_at])
 }
 
 model Sales {
@@ -69,6 +73,8 @@ model Sales {
   created_at     DateTime @default(now())
 
   @@index([date])
+  @@index([size_mm])
+  @@index([created_at])
 }
 
 model Product {
@@ -82,6 +88,8 @@ model Product {
   created_at  DateTime @default(now())
 
   @@index([date])
+  @@index([size_mm])
+  @@index([created_at])
 }
 
 model Stock {
@@ -105,4 +113,6 @@ model Stock {
 
   @@unique([date, materialId, size_mm])
   @@index([date])
+  @@index([materialId])
+  @@index([size_mm])
 }

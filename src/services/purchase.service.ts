@@ -3,15 +3,28 @@ import { StockService } from './stock.service';
 
 export const purchaseService = {
   // Get all purchase entries
-  async getAll() {
+  async getAll(take = 1000, skip = 0) {
     return db.purchase.findMany({
-      include: { material: true },
+      select: {
+        id: true,
+        date: true,
+        invoice_no: true,
+        supplier: true,
+        materialId: true,
+        size_mm: true,
+        quantity_kg: true,
+        quantity_box: true,
+        remarks: true,
+        material: { select: { id: true, name: true } },
+      },
       orderBy: { date: 'desc' },
+      take,
+      skip,
     });
   },
 
   // Get purchase by date
-  async getByDate(date: Date) {
+  async getByDate(date: Date, take = 1000, skip = 0) {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -22,26 +35,65 @@ export const purchaseService = {
       where: {
         date: { gte: startOfDay, lte: endOfDay },
       },
-      include: { material: true },
+      select: {
+        id: true,
+        date: true,
+        invoice_no: true,
+        supplier: true,
+        materialId: true,
+        size_mm: true,
+        quantity_kg: true,
+        quantity_box: true,
+        remarks: true,
+        material: { select: { id: true, name: true } },
+      },
       orderBy: { created_at: 'desc' },
+      take,
+      skip,
     });
   },
 
   // Get by supplier
-  async getBySupplier(supplier: string) {
+  async getBySupplier(supplier: string, take = 1000, skip = 0) {
     return db.purchase.findMany({
       where: { supplier: { contains: supplier } },
-      include: { material: true },
+      select: {
+        id: true,
+        date: true,
+        invoice_no: true,
+        supplier: true,
+        materialId: true,
+        size_mm: true,
+        quantity_kg: true,
+        quantity_box: true,
+        remarks: true,
+        material: { select: { id: true, name: true } },
+      },
       orderBy: { date: 'desc' },
+      take,
+      skip,
     });
   },
 
   // Get by material
-  async getByMaterial(materialId: number) {
+  async getByMaterial(materialId: number, take = 1000, skip = 0) {
     return db.purchase.findMany({
       where: { materialId },
-      include: { material: true },
+      select: {
+        id: true,
+        date: true,
+        invoice_no: true,
+        supplier: true,
+        materialId: true,
+        size_mm: true,
+        quantity_kg: true,
+        quantity_box: true,
+        remarks: true,
+        material: { select: { id: true, name: true } },
+      },
       orderBy: { date: 'desc' },
+      take,
+      skip,
     });
   },
 
@@ -49,7 +101,18 @@ export const purchaseService = {
   async getById(id: number) {
     return db.purchase.findUnique({
       where: { id },
-      include: { material: true },
+      select: {
+        id: true,
+        date: true,
+        invoice_no: true,
+        supplier: true,
+        materialId: true,
+        size_mm: true,
+        quantity_kg: true,
+        quantity_box: true,
+        remarks: true,
+        material: { select: { id: true, name: true } },
+      },
     });
   },
 
@@ -58,6 +121,7 @@ export const purchaseService = {
     if (data.materialId) {
       const material = await db.material.findUnique({
         where: { id: data.materialId },
+        select: { id: true, name: true },
       });
 
       if (!material) {
@@ -76,7 +140,18 @@ export const purchaseService = {
         quantity_box: data.quantity_box || null,
         remarks: data.remarks || null,
       },
-      include: { material: true },
+      select: {
+        id: true,
+        date: true,
+        invoice_no: true,
+        supplier: true,
+        materialId: true,
+        size_mm: true,
+        quantity_kg: true,
+        quantity_box: true,
+        remarks: true,
+        material: { select: { id: true, name: true } },
+      },
     });
 
     // Update stock for either material or size
@@ -98,6 +173,7 @@ export const purchaseService = {
     if (data.materialId && data.materialId !== existing.materialId) {
       const material = await db.material.findUnique({
         where: { id: data.materialId },
+        select: { id: true, name: true },
       });
       if (!material) {
         throw new Error('Material not found');
@@ -116,7 +192,18 @@ export const purchaseService = {
         ...(data.quantity_box !== undefined && { quantity_box: data.quantity_box }),
         ...(data.remarks !== undefined && { remarks: data.remarks || null }),
       },
-      include: { material: true },
+      select: {
+        id: true,
+        date: true,
+        invoice_no: true,
+        supplier: true,
+        materialId: true,
+        size_mm: true,
+        quantity_kg: true,
+        quantity_box: true,
+        remarks: true,
+        material: { select: { id: true, name: true } },
+      },
     });
 
     // Update stock for current state

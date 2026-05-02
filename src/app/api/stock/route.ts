@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { startOfDay } from 'date-fns';
+import { getCacheHeaders, CACHE_DURATION } from '@/lib/cache-headers';
+
+// Cache GET requests for 10 seconds
+export const revalidate = 10;
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,8 +42,17 @@ export async function GET(request: NextRequest) {
           { sales: { not: 0 } },
         ],
       },
-      include: {
-        material: true,
+      select: {
+        id: true,
+        date: true,
+        materialId: true,
+        size_mm: true,
+        opening_stock: true,
+        purchase: true,
+        production: true,
+        sales: true,
+        balance: true,
+        material: { select: { id: true, name: true } },
       },
       orderBy: [
         { date: 'desc' },
@@ -48,7 +61,9 @@ export async function GET(request: NextRequest) {
       ],
     });
 
-    return NextResponse.json({ success: true, data });
+    const response = NextResponse.json({ success: true, data });
+    response.headers.set('Cache-Control', `public, max-age=${CACHE_DURATION.SHORT}, s-maxage=${CACHE_DURATION.SHORT}`);
+    return response;
   } catch (error) {
     console.error('Error fetching stock:', error);
     return NextResponse.json(

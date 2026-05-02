@@ -3,14 +3,26 @@ import { StockService } from './stock.service';
 
 export const salesService = {
   // Get all sales entries
-  async getAll() {
+  async getAll(take = 1000, skip = 0) {
     return db.sales.findMany({
+      select: {
+        id: true,
+        date: true,
+        customer_name: true,
+        size_mm: true,
+        quantity: true,
+        rate: true,
+        amount: true,
+        remarks: true,
+      },
       orderBy: { date: 'desc' },
+      take,
+      skip,
     });
   },
 
   // Get sales by date
-  async getByDate(date: Date) {
+  async getByDate(date: Date, take = 1000, skip = 0) {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -21,23 +33,59 @@ export const salesService = {
       where: {
         date: { gte: startOfDay, lte: endOfDay },
       },
+      select: {
+        id: true,
+        date: true,
+        customer_name: true,
+        size_mm: true,
+        quantity: true,
+        rate: true,
+        amount: true,
+        remarks: true,
+      },
       orderBy: { created_at: 'desc' },
+      take,
+      skip,
     });
   },
 
   // Get by customer
-  async getByCustomer(customerName: string) {
+  async getByCustomer(customerName: string, take = 1000, skip = 0) {
     return db.sales.findMany({
       where: { customer_name: { contains: customerName } },
+      select: {
+        id: true,
+        date: true,
+        customer_name: true,
+        size_mm: true,
+        quantity: true,
+        rate: true,
+        amount: true,
+        remarks: true,
+      },
       orderBy: { date: 'desc' },
+      take,
+      skip,
     });
   },
 
   // Get by size
-  async getBySize(size_mm: number) {
+  async getBySize(size_mm: number, take = 1000, skip = 0) {
     return db.sales.findMany({
       where: { size_mm },
+      select: {
+        id: true,
+        date: true,
+        customer_name: true,
+        size_mm: true,
+        quantity: true,
+        rate: true,
+        amount: true,
+        remarks: true,
+      },
       orderBy: { date: 'desc' },
+      take,
+      skip,
     });
   },
 
@@ -45,6 +93,16 @@ export const salesService = {
   async getById(id: number) {
     return db.sales.findUnique({
       where: { id },
+      select: {
+        id: true,
+        date: true,
+        customer_name: true,
+        size_mm: true,
+        quantity: true,
+        rate: true,
+        amount: true,
+        remarks: true,
+      },
     });
   },
 
@@ -62,6 +120,16 @@ export const salesService = {
         amount,
         remarks: data.remarks || null,
       },
+      select: {
+        id: true,
+        date: true,
+        customer_name: true,
+        size_mm: true,
+        quantity: true,
+        rate: true,
+        amount: true,
+        remarks: true,
+      },
     });
 
     // Update stock
@@ -72,7 +140,7 @@ export const salesService = {
 
   // Update sales entry
   async update(id: number, data: any) {
-    const existing = await db.sales.findUnique({ where: { id } });
+    const existing = await db.sales.findUnique({ where: { id }, select: { date: true, size_mm: true, quantity: true, rate: true } });
     if (!existing) throw new Error('Sales entry not found');
 
     const quantity = data.quantity ?? existing.quantity;
@@ -92,6 +160,16 @@ export const salesService = {
         amount,
         ...(data.remarks !== undefined && { remarks: data.remarks || null }),
       },
+      select: {
+        id: true,
+        date: true,
+        customer_name: true,
+        size_mm: true,
+        quantity: true,
+        rate: true,
+        amount: true,
+        remarks: true,
+      },
     });
 
     // Update stock for new date/size
@@ -107,7 +185,7 @@ export const salesService = {
 
   // Delete sales entry
   async delete(id: number) {
-    const existing = await db.sales.findUnique({ where: { id } });
+    const existing = await db.sales.findUnique({ where: { id }, select: { date: true, size_mm: true } });
     if (!existing) throw new Error('Sales entry not found');
 
     const sale = await db.sales.delete({ where: { id } });

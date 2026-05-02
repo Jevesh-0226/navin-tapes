@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { salesService } from '@/services/sales.service';
 import { ZodError } from 'zod';
 import { createSalesSchema } from '@/lib/validation';
+import { getCacheHeaders, CACHE_DURATION } from '@/lib/cache-headers';
+
+// Cache GET requests for 10 seconds
+export const revalidate = 10;
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,25 +14,20 @@ export async function GET(request: NextRequest) {
     const customer = searchParams.get('customer');
     const size = searchParams.get('size');
 
+    let data;
     if (date) {
-      const data = await salesService.getByDate(new Date(date));
-      return NextResponse.json({ success: true, data });
+      data = await salesService.getByDate(new Date(date));
+    } else if (customer) {
+      data = await salesService.getByCustomer(decodeURIComponent(customer));
+    } else if (size) {
+      data = await salesService.getBySize(parseInt(size, 10));
+    } else {
+      data = await salesService.getAll();
     }
 
-    if (customer) {
-      const data = await salesService.getByCustomer(
-        decodeURIComponent(customer)
-      );
-      return NextResponse.json({ success: true, data });
-    }
-
-    if (size) {
-      const data = await salesService.getBySize(parseInt(size, 10));
-      return NextResponse.json({ success: true, data });
-    }
-
-    const data = await salesService.getAll();
-    return NextResponse.json({ success: true, data });
+    const response = NextResponse.json({ success: true, data });
+    response.headers.set('Cache-Control', `public, max-age=${CACHE_DURATION.SHORT}, s-maxage=${CACHE_DURATION.SHORT}`);
+    return response;
   } catch (error) {
     console.error('Error fetching sales:', error);
     return NextResponse.json(

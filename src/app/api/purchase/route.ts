@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { purchaseService } from '@/services/purchase.service';
 import { createInwardSchema } from '@/lib/validation';
 import { ZodError } from 'zod';
+import { getCacheHeaders, CACHE_DURATION } from '@/lib/cache-headers';
+
+// Cache GET requests for 10 seconds (will vary based on query params)
+export const revalidate = 10;
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,30 +14,24 @@ export async function GET(request: NextRequest) {
     const supplier = searchParams.get('supplier');
     const material = searchParams.get('material');
 
+    let data;
     // Get by specific date
     if (date) {
-      const data = await purchaseService.getByDate(new Date(date));
-      return NextResponse.json({ success: true, data });
+      data = await purchaseService.getByDate(new Date(date));
+    } else if (supplier) {
+      // Get by supplier
+      data = await purchaseService.getBySupplier(decodeURIComponent(supplier));
+    } else if (material) {
+      // Get by material
+      data = await purchaseService.getByMaterial(parseInt(material, 10));
+    } else {
+      // Get all
+      data = await purchaseService.getAll();
     }
 
-    // Get by supplier
-    if (supplier) {
-      const data = await purchaseService.getBySupplier(
-        decodeURIComponent(supplier)
-      );
-      return NextResponse.json({ success: true, data });
-    }
-
-    // Get by material
-    if (material) {
-      const data = await purchaseService.getByMaterial(parseInt(material, 10));
-      return NextResponse.json({ success: true, data });
-    }
-
-    // Get all
-    const data = await purchaseService.getAll();
-
-    return NextResponse.json({ success: true, data });
+    const response = NextResponse.json({ success: true, data });
+    response.headers.set('Cache-Control', `public, max-age=${CACHE_DURATION.SHORT}, s-maxage=${CACHE_DURATION.SHORT}`);
+    return response;
   } catch (error) {
     console.error('Error fetching purchase:', error);
     return NextResponse.json(

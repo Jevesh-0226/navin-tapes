@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { StockService } from '@/services/stock.service';
 import { startOfDay } from 'date-fns';
+import { getCacheHeaders, CACHE_DURATION } from '@/lib/cache-headers';
+
+// Cache GET requests for 10 seconds
+export const revalidate = 10;
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,10 +24,19 @@ export async function GET(request: NextRequest) {
 
     const data = await db.product.findMany({
       where,
+      select: {
+        id: true,
+        date: true,
+        size_mm: true,
+        quantity: true,
+        remarks: true,
+      },
       orderBy: { date: 'desc' },
     });
 
-    return NextResponse.json({ success: true, data });
+    const response = NextResponse.json({ success: true, data });
+    response.headers.set('Cache-Control', `public, max-age=${CACHE_DURATION.SHORT}, s-maxage=${CACHE_DURATION.SHORT}`);
+    return response;
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch products' }, { status: 500 });
