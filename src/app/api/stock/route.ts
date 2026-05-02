@@ -50,10 +50,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error fetching stock:', errorMessage);
+    console.error('Error fetching stock:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch stock', details: errorMessage },
+      { success: false, error: 'Failed to fetch stock' },
       { status: 500 }
     );
   }

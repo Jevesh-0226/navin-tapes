@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
-import DatabaseInitializer from '@/components/DatabaseInitializer';
 
 export const metadata: Metadata = {
   title: 'Navin Tapes Manufacturing System',
@@ -16,7 +15,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-slate-50">
-        <DatabaseInitializer />
         <div className="flex h-screen">
           {/* Sidebar */}
           <Sidebar />

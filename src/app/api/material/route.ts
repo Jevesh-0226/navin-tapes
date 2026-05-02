@@ -6,13 +6,11 @@ export async function GET() {
     const data = await db.material.findMany({
       orderBy: { name: 'asc' },
     });
-    console.log(`[API] Material endpoint called. Found ${data.length} materials`);
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[API] Material endpoint error:', errorMessage);
+    console.error('Error fetching materials:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch materials', details: errorMessage },
+      { success: false, error: 'Failed to fetch materials' },
       { status: 500 }
     );
   }
