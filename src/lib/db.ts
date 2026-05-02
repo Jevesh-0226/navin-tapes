@@ -1,13 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+// Re-export from centralized prisma instance for backward compatibility
+// This ensures serverless environments use a single PrismaClient instance
+import { prisma } from './prisma';
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-export const db =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: ['query', 'error', 'warn'],
-  });
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
+export const db = prisma;
 
 export default db;
