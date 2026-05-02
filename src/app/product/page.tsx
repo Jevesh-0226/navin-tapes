@@ -21,12 +21,12 @@ export default function ProductPage() {
 
   const [formData, setFormData] = useState({
     date: getToday(),
-    size_mm: '12',
+    size_mm: '3',
     quantity: '',
     remarks: '',
   });
 
-  const sizes = [12, 18, 20, 24, 25, 30, 36, 40, 48, 60, 72];
+  const sizes = [3, 4, 6, 8, 10, 15, 18, 20, 25, 30, 35, 40, 45, 50, 55];
 
   useEffect(() => {
     fetchProducts();

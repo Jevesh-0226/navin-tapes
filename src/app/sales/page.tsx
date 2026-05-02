@@ -25,13 +25,13 @@ export default function SalesPage() {
   const [formData, setFormData] = useState({
     date: getToday(),
     customer_name: '',
-    size_mm: '12',
+    size_mm: '3',
     quantity: '',
     rate: '',
     remarks: '',
   });
 
-  const sizes = [12, 18, 20, 24, 25, 30, 36, 40, 48, 60, 72];
+  const sizes = [3, 4, 6, 8, 10, 15, 18, 20, 25, 30, 35, 40, 45, 50, 55];
 
   useEffect(() => {
     fetchSales();
@@ -92,7 +92,7 @@ export default function SalesPage() {
         setFormData({
           date: getToday(),
           customer_name: '',
-          size_mm: '12',
+          size_mm: '3',
           quantity: '',
           rate: '',
           remarks: '',
