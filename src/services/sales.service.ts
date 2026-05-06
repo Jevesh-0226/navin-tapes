@@ -167,8 +167,8 @@ export const salesService = {
       },
     });
 
-    // Update stock
-    await StockService.recalculateStock(sale.date, undefined, sale.size_mm);
+    // Update stock for this size, colour and date
+    await StockService.recalculateStock(sale.date, undefined, sale.size_mm, sale.colour || null);
 
     return sale;
   },
@@ -217,12 +217,12 @@ export const salesService = {
       },
     });
 
-    // Update stock for new date/size
-    await StockService.recalculateStock(sale.date, undefined, sale.size_mm);
+    // Update stock for new date/size and colour
+    await StockService.recalculateStock(sale.date, undefined, sale.size_mm, sale.colour || null);
 
     // If date or size changed, update old record's stock
     if (existing.date.getTime() !== sale.date.getTime() || existing.size_mm !== sale.size_mm) {
-      await StockService.recalculateStock(existing.date, undefined, existing.size_mm);
+      await StockService.recalculateStock(existing.date, undefined, existing.size_mm, data.colour !== undefined ? (data.colour || null) : undefined);
     }
 
     return sale;
@@ -230,13 +230,13 @@ export const salesService = {
 
   // Delete sales entry
   async delete(id: number) {
-    const existing = await db.sales.findUnique({ where: { id }, select: { date: true, size_mm: true } });
+    const existing = await db.sales.findUnique({ where: { id }, select: { date: true, size_mm: true, colour: true } });
     if (!existing) throw new Error('Sales entry not found');
 
     const sale = await db.sales.delete({ where: { id } });
 
-    // Update stock
-    await StockService.recalculateStock(sale.date, undefined, sale.size_mm);
+    // Update stock for deleted entry's date, size and colour
+    await StockService.recalculateStock(sale.date, undefined, sale.size_mm, existing.colour || null);
 
     return sale;
   },

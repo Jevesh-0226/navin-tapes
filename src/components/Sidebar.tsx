@@ -10,6 +10,7 @@ const navigationItems = [
   { label: 'Product', href: '/product', icon: '⚙️' },
   { label: 'Sales', href: '/sales', icon: '💰' },
   { label: 'Stock', href: '/stock', icon: '📈' },
+  { label: 'Expense', href: '/expense', icon: '💳' },
 ];
 
 export default function Sidebar() {

@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     const materialId = searchParams.get('materialId');
     const size_mm = searchParams.get('size_mm');
+    const colour = searchParams.get('colour');
 
     const where: any = {};
 
@@ -32,6 +33,10 @@ export async function GET(request: NextRequest) {
       where.size_mm = parseInt(size_mm, 10);
     }
 
+    if (colour && colour !== 'all') {
+      where.colour = colour;
+    }
+
     const data = await db.stock.findMany({
       where: {
         ...where,
@@ -47,6 +52,7 @@ export async function GET(request: NextRequest) {
         date: true,
         materialId: true,
         size_mm: true,
+        colour: true,
         opening_stock: true,
         purchase: true,
         production: true,
@@ -58,6 +64,7 @@ export async function GET(request: NextRequest) {
         { date: 'desc' },
         { materialId: 'asc' },
         { size_mm: 'asc' },
+        { colour: 'asc' },
       ],
     });
 

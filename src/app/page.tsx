@@ -102,6 +102,12 @@ export default function Home() {
       href: '/stock',
       icon: '📈',
     },
+    {
+      name: 'Expense',
+      description: 'Log daily operating expenses',
+      href: '/expense',
+      icon: '💳',
+    },
   ];
 
   const features = [
@@ -155,6 +161,12 @@ export default function Home() {
               className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
             >
               Stock
+            </Link>
+            <Link
+              href="/expense"
+              className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
+            >
+              Expense
             </Link>
           </nav>
         </div>

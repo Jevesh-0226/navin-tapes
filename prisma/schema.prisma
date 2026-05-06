@@ -112,6 +112,7 @@ model Stock {
 
   // Finished goods tracking
   size_mm        Int?
+  colour         String?
 
   opening_stock  Float     @default(0)
   purchase       Float     @default(0)
@@ -122,7 +123,7 @@ model Stock {
 
   material Material? @relation(fields: [materialId], references: [id])
 
-  @@unique([date, materialId, size_mm])
+  @@unique([date, materialId, size_mm, colour])
   @@index([date])
   @@index([materialId])
   @@index([size_mm])
@@ -142,6 +143,16 @@ model Order {
   amount        Float
 
   created_at    DateTime @default(now())
+
+  @@index([date])
+}
+
+model Expense {
+  id         Int      @id @default(autoincrement())
+  date       DateTime
+  name       String
+  amount     Float
+  created_at DateTime @default(now())
 
   @@index([date])
 }

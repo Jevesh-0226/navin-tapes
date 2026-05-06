@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { purchaseAPI, getErrorMessage } from '@/lib/api-client';
-import { getToday, formatDate } from '@/lib/utils';
+import { getToday, formatDateIndian, formatIndianNumber, formatCurrency, printTable } from '@/lib/utils';
 
 interface Purchase {
   id: number;
@@ -25,6 +25,7 @@ export default function PurchasePage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [materials, setMaterials] = useState<{ id: number; name: string }[]>([]);
   const [materialsError, setMaterialsError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(getToday());
   const [formData, setFormData] = useState({
     date: getToday(),
     invoice_no: '',
@@ -37,7 +38,7 @@ export default function PurchasePage() {
   });
 
   useEffect(() => {
-    fetchPurchases();
+    fetchPurchasesForDate(selectedDate);
     fetchMaterials();
     // Cleanup: clear loading and messages when component unmounts
     return () => {
@@ -46,6 +47,23 @@ export default function PurchasePage() {
       setSuccess(null);
     };
   }, []);
+
+  useEffect(() => {
+    fetchPurchasesForDate(selectedDate);
+  }, [selectedDate]);
+
+  const fetchPurchasesForDate = async (date: string) => {
+    try {
+      setLoading(true);
+      const response = await purchaseAPI.getByDate(date);
+      setEntries(response.data?.data || []);
+      setError(null);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchMaterials = async () => {
     try {
@@ -67,18 +85,17 @@ export default function PurchasePage() {
     }
   };
 
-  const fetchPurchases = async () => {
-    try {
-      setLoading(true);
-      const response = await purchaseAPI.getAll();
-      setEntries(response.data?.data || []);
-      setError(null);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
+  const handleDateChange = (date: string) => {
+    setSelectedDate(date);
   };
+
+  // Auto-sync form date with selected filter date
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      date: selectedDate,
+    }));
+  }, [selectedDate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -155,11 +172,52 @@ export default function PurchasePage() {
     }
   };
 
+  const handlePrint = () => {
+    const printData = entries.map(entry => ({
+      date: formatDateIndian(entry.date),
+      invoice_no: entry.invoice_no,
+      supplier: entry.supplier,
+      material: entry.material?.name || '-',
+      quantity_kg: entry.quantity_kg.toFixed(2),
+      quantity_box: entry.quantity_box || '-',
+      amount: entry.amount ? formatCurrency(entry.amount) : '-',
+    }));
+
+    printTable('Purchase History', printData, [
+      { key: 'date', label: 'Date' },
+      { key: 'invoice_no', label: 'Invoice' },
+      { key: 'supplier', label: 'Supplier' },
+      { key: 'material', label: 'Material' },
+      { key: 'quantity_kg', label: 'Qty (kg)' },
+      { key: 'quantity_box', label: 'Qty (box)' },
+      { key: 'amount', label: 'Amount' },
+    ]);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <TopBar title="Purchase" subtitle="Raw material inward" />
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Date Filter */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Filter by Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Showing purchases for:</p>
+              <p className="text-lg font-bold text-gray-900">{formatDateIndian(new Date(selectedDate))}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Form Card */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-lg font-bold mb-4 text-gray-800">New Purchase Entry</h2>
@@ -177,19 +235,6 @@ export default function PurchasePage() {
           )}
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">Date</label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Invoice #</label>
               <input
@@ -295,7 +340,7 @@ export default function PurchasePage() {
               />
             </div>
 
-            <div className="lg:col-span-3 flex items-end">
+            <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={loading}
@@ -307,9 +352,37 @@ export default function PurchasePage() {
           </form>
         </div>
 
+        {/* Summary */}
+        {entries.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <p className="text-sm text-blue-600">Total Quantity (kg)</p>
+              <p className="text-2xl font-bold text-blue-900">{formatIndianNumber(entries.reduce((sum, e) => sum + e.quantity_kg, 0))}</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+              <p className="text-sm text-green-600">Total Amount</p>
+              <p className="text-2xl font-bold text-green-900">{formatCurrency(entries.reduce((sum, e) => sum + (e.amount || 0), 0))}</p>
+            </div>
+            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <p className="text-sm text-purple-600">Entries</p>
+              <p className="text-2xl font-bold text-purple-900">{entries.length}</p>
+            </div>
+          </div>
+        )}
+
         {/* Table Card */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-lg font-bold mb-4 text-gray-800">Purchase History</h2>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+            <h2 className="text-lg font-bold text-gray-800">Purchase History</h2>
+            {entries.length > 0 && (
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                🖨️ Print
+              </button>
+            )}
+          </div>
 
           {entries.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
@@ -332,30 +405,30 @@ export default function PurchasePage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                    {entries.map(entry => (
-                      <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
-                        <td className="px-6 py-4 text-gray-600 tabular-nums">{formatDate(entry.date)}</td>
-                        <td className="px-6 py-4 text-gray-700 font-medium">{entry.invoice_no}</td>
-                        <td className="px-6 py-4 text-gray-700">{entry.supplier}</td>
-                        <td className="px-6 py-4 text-gray-900 font-semibold">
-                          {entry.material?.name || '-'}
-                        </td>
-                        <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-800">{entry.quantity_kg.toFixed(2)}</td>
-                        <td className="text-center px-6 py-4 tabular-nums text-gray-600">{entry.quantity_box || '-'}</td>
-                        <td className="text-center px-6 py-4 tabular-nums text-gray-800">{entry.amount?.toFixed(2) || '-'}</td>
-                        <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
-                          {entry.remarks || '-'}
-                        </td>
-                        <td className="text-center px-6 py-4">
-                          <button
-                            onClick={() => handleDelete(entry.id)}
-                            className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                  {entries.map(entry => (
+                    <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
+                      <td className="px-6 py-4 text-gray-600 tabular-nums">{formatDateIndian(entry.date)}</td>
+                      <td className="px-6 py-4 text-gray-700 font-medium">{entry.invoice_no}</td>
+                      <td className="px-6 py-4 text-gray-700">{entry.supplier}</td>
+                      <td className="px-6 py-4 text-gray-900 font-semibold">
+                        {entry.material?.name || '-'}
+                      </td>
+                      <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-800">{formatIndianNumber(entry.quantity_kg)}</td>
+                      <td className="text-center px-6 py-4 tabular-nums text-gray-600">{entry.quantity_box || '-'}</td>
+                      <td className="text-center px-6 py-4 tabular-nums text-gray-800">{entry.amount ? formatCurrency(entry.amount) : '-'}</td>
+                      <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
+                        {entry.remarks || '-'}
+                      </td>
+                      <td className="text-center px-6 py-4">
+                        <button
+                          onClick={() => handleDelete(entry.id)}
+                          className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

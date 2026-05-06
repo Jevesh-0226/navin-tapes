@@ -10,7 +10,8 @@
     "prisma:push": "prisma db push",
     "prisma:generate": "prisma generate",
     "prisma:seed": "tsx prisma/seed.ts",
-    "prisma:setup": "npm run prisma:push && npm run prisma:generate && npm run prisma:seed"
+    "prisma:setup": "npm run prisma:push && npm run prisma:generate && npm run prisma:seed",
+    "migrate:latest": "node scripts/run-latest-migration.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

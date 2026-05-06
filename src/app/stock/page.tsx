@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import StockTable from '@/components/stock/StockTable';
 import FilterBar from '@/components/stock/FilterBar';
-import { getToday } from '@/lib/utils';
+import { getToday, formatDateIndian } from '@/lib/utils';
 
 export default function StockLedgerPage() {
   const [data, setData] = useState([]);
@@ -75,8 +75,7 @@ export default function StockLedgerPage() {
 
   const getDisplayDate = () => {
     if (filters.date) {
-      const date = new Date(filters.date);
-      return date.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+      return formatDateIndian(new Date(filters.date));
     }
     return 'Select a Date';
   };

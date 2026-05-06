@@ -1,11 +1,13 @@
 import React from 'react';
 import { format } from 'date-fns';
+import { formatIndianNumber } from '@/lib/utils';
 
 interface StockEntry {
   id: number;
   date: string | Date;
   materialId: number | null;
   size_mm: number | null;
+  colour?: string | null;
   opening_stock: number;
   purchase: number;
   production: number;
@@ -77,7 +79,7 @@ export default function StockTable({ data, loading, type }: StockTableProps) {
             {data.map((row) => (
               <tr key={row.id} className="border-b even:bg-gray-50/50 hover:bg-blue-50 transition-colors">
                 <td className="px-3 py-4 text-center whitespace-nowrap tabular-nums text-gray-500">
-                  {format(new Date(row.date), 'dd-MM-yyyy')}
+                  {format(new Date(row.date), 'dd/MM/yyyy')}
                 </td>
 
                 {type === 'material' ? (
@@ -86,31 +88,31 @@ export default function StockTable({ data, loading, type }: StockTableProps) {
                   </td>
                 ) : (
                   <td className="px-3 py-4 text-center font-bold text-blue-700">
-                    {row.size_mm} mm
+                    {row.size_mm} mm {row.colour ? `(${row.colour})` : ''}
                   </td>
                 )}
 
                 <td className="px-3 py-4 text-center tabular-nums">
-                  {row.opening_stock.toFixed(2)}
+                  {formatIndianNumber(row.opening_stock)}
                 </td>
 
                 {type === 'material' ? (
                   <td className="px-3 py-4 text-center tabular-nums font-medium text-green-600">
-                    {row.purchase > 0 ? `+${row.purchase.toFixed(2)}` : '-'}
+                    {row.purchase > 0 ? `+${formatIndianNumber(row.purchase)}` : '-'}
                   </td>
                 ) : (
                   <>
                     <td className="px-3 py-4 text-center tabular-nums font-medium text-blue-600">
-                      {row.production > 0 ? `+${row.production.toFixed(2)}` : '-'}
+                      {row.production > 0 ? `+${formatIndianNumber(row.production)}` : '-'}
                     </td>
                     <td className="px-3 py-4 text-center tabular-nums font-medium text-red-600">
-                      {row.sales > 0 ? `-${row.sales.toFixed(2)}` : '-'}
+                      {row.sales > 0 ? `-${formatIndianNumber(row.sales)}` : '-'}
                     </td>
                   </>
                 )}
 
                 <td className={`px-3 py-4 text-center tabular-nums font-bold bg-gray-50/30 ${row.balance >= 0 ? 'text-gray-900' : 'text-red-700'}`}>
-                  {row.balance.toFixed(2)}
+                  {formatIndianNumber(row.balance)}
                 </td>
               </tr>
             ))}

@@ -7,8 +7,9 @@ export class StockService {
    * @param date Date to look before
    * @param materialId Optional material ID for raw material stock
    * @param size_mm Optional size for finished goods stock
+   * @param colour Optional colour for finished goods stock
    */
-  static async getPreviousBalance(date: Date, materialId: number | null = null, size_mm: number | null = null) {
+  static async getPreviousBalance(date: Date, materialId: number | null = null, size_mm: number | null = null, colour: string | null = null) {
     const prevStock = await db.stock.findFirst({
       where: {
         date: {
@@ -16,6 +17,7 @@ export class StockService {
         },
         materialId: materialId,
         size_mm: size_mm,
+        colour: colour,
       },
       orderBy: {
         date: "desc",
@@ -66,16 +68,17 @@ export class StockService {
   }
 
   /**
-   * Calculate stock for a specific product size on a given date
+   * Calculate stock for a specific product size and colour on a given date
    */
-  static async calculateProductStock(date: Date, size_mm: number) {
+  static async calculateProductStock(date: Date, size_mm: number, colour: string | null = null) {
     const dayStart = startOfDay(date);
     const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
 
-    // Sum all production for this size on this date (from NEW Product table)
+    // Sum all production for this size and colour on this date (from NEW Product table)
     const productAgg = await db.product.aggregate({
       where: {
         size_mm,
+        colour: colour,
         date: {
           gte: dayStart,
           lt: dayEnd,
@@ -100,10 +103,11 @@ export class StockService {
       },
     });
 
-    // Sum all sales for this size on this date
+    // Sum all sales for this size and colour on this date
     const salesAgg = await db.sales.aggregate({
       where: {
         size_mm,
+        colour: colour,
         date: {
           gte: dayStart,
           lt: dayEnd,
@@ -117,7 +121,7 @@ export class StockService {
     const production = productAgg._sum?.quantity ?? 0;
     const purchase = purchaseAgg._sum?.quantity_kg ?? 0;
     const sales = salesAgg._sum?.quantity ?? 0;
-    const opening_stock = await this.getPreviousBalance(date, null, size_mm);
+    const opening_stock = await this.getPreviousBalance(date, null, size_mm, colour);
 
     // Formula for product: balance = opening + purchase + production - sales
     const balance = opening_stock + purchase + production - sales;
@@ -126,6 +130,7 @@ export class StockService {
       date: dayStart,
       materialId: null,
       size_mm,
+      colour: colour,
       opening_stock,
       purchase,
       production,
@@ -141,6 +146,7 @@ export class StockService {
     date: Date;
     materialId: number | null;
     size_mm: number | null;
+    colour?: string | null;
     opening_stock: number;
     purchase: number;
     production: number;
@@ -153,6 +159,7 @@ export class StockService {
         date: data.date,
         materialId: data.materialId,
         size_mm: data.size_mm,
+        colour: data.colour || null,
       },
     });
 
@@ -177,14 +184,14 @@ export class StockService {
   /**
    * Main entry point to update stock for a specific item and date
    */
-  static async recalculateStock(date: Date, materialId?: number, size_mm?: number) {
+  static async recalculateStock(date: Date, materialId?: number, size_mm?: number, colour?: string | null) {
     if (materialId !== undefined) {
       const stockData = await this.calculateMaterialStock(date, materialId);
       await this.upsertStock(stockData);
     }
     
     if (size_mm !== undefined) {
-      const stockData = await this.calculateProductStock(date, size_mm);
+      const stockData = await this.calculateProductStock(date, size_mm, colour || null);
       await this.upsertStock(stockData);
     }
   }
@@ -193,52 +200,66 @@ export class StockService {
    * Recalculate stock for a specific date (optional but recommended)
    */
   static async recalculateStockForDate(date: Date) {
-    // Get all materials and sizes that have entries on this date
+    const dayStart = startOfDay(date);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    
+    // Get all materials that have entries on this date
     const purchases = await db.purchase.findMany({
       where: {
         date: {
-          gte: startOfDay(date),
-          lt: new Date(startOfDay(date).getTime() + 24 * 60 * 60 * 1000),
+          gte: dayStart,
+          lt: dayEnd,
         },
       },
       select: { materialId: true },
       distinct: ['materialId'],
     });
 
+    // Get all unique sizes and colours for products on this date
     const products = await db.product.findMany({
       where: {
         date: {
-          gte: startOfDay(date),
-          lt: new Date(startOfDay(date).getTime() + 24 * 60 * 60 * 1000),
+          gte: dayStart,
+          lt: dayEnd,
         },
       },
-      select: { size_mm: true },
-      distinct: ['size_mm'],
+      select: { size_mm: true, colour: true },
+      distinct: ['size_mm', 'colour'],
     });
 
+    // Get all unique sizes and colours for sales on this date
     const sales = await db.sales.findMany({
       where: {
         date: {
-          gte: startOfDay(date),
-          lt: new Date(startOfDay(date).getTime() + 24 * 60 * 60 * 1000),
+          gte: dayStart,
+          lt: dayEnd,
         },
       },
-      select: { size_mm: true },
-      distinct: ['size_mm'],
+      select: { size_mm: true, colour: true },
+      distinct: ['size_mm', 'colour'],
     });
 
-    // Combine unique sizes from both product and sales
-    const uniqueSizes = new Set([
-      ...products.map(p => p.size_mm),
-      ...sales.map(s => s.size_mm)
-    ]);
+    // Combine unique size-colour combinations from both product and sales
+    const uniqueCombinations = new Map<string, { size_mm: number; colour: string | null }>();
+    
+    for (const p of products) {
+      const key = `${p.size_mm}-${p.colour || 'null'}`;
+      uniqueCombinations.set(key, { size_mm: p.size_mm, colour: p.colour });
+    }
+    
+    for (const s of sales) {
+      const key = `${s.size_mm}-${s.colour || 'null'}`;
+      uniqueCombinations.set(key, { size_mm: s.size_mm, colour: s.colour });
+    }
 
+    // Recalculate stock for all materials
     for (const p of purchases) {
       await this.recalculateStock(date, p.materialId ?? undefined);
     }
 
-    for (const size of uniqueSizes) {
-      await this.recalculateStock(date, undefined, size);
+    // Recalculate stock for all size-colour combinations
+    for (const combo of uniqueCombinations.values()) {
+      await this.recalculateStock(date, undefined, combo.size_mm, combo.colour);
     }
   }
 }

@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update stock for this size and date
-    await StockService.recalculateStock(new Date(date), undefined, parseInt(size_mm));
+    // Update stock for this size, colour and date
+    await StockService.recalculateStock(new Date(date), undefined, parseInt(size_mm), colour || null);
 
     return NextResponse.json({ success: true, data: product });
   } catch (error) {

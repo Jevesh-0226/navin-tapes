@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { productAPI, getErrorMessage } from '@/lib/api-client';
-import { getToday, formatDate } from '@/lib/utils';
+import { getToday, formatDateIndian, formatIndianNumber, printTable } from '@/lib/utils';
 
 interface ProductEntry {
   id: number;
@@ -22,6 +22,7 @@ export default function ProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const [selectedDate, setSelectedDate] = useState(getToday());
   const [formData, setFormData] = useState({
     date: getToday(),
     size_mm: '3',
@@ -37,7 +38,6 @@ export default function ProductPage() {
   const PRODUCT_TYPES = ['Rubber Elastic', '840 Lycra', '840 Lycra Finishing', '1120 Lycra Finishing'];
 
   useEffect(() => {
-    fetchProducts();
     // Cleanup: clear loading and messages when component unmounts
     return () => {
       setLoading(false);
@@ -46,10 +46,14 @@ export default function ProductPage() {
     };
   }, []);
 
-  const fetchProducts = async () => {
+  useEffect(() => {
+    fetchProductsForDate(selectedDate);
+  }, [selectedDate]);
+
+  const fetchProductsForDate = async (date: string) => {
     try {
       setLoading(true);
-      const response = await productAPI.getAll();
+      const response = await productAPI.getByDate(date);
       setEntries(response.data?.data || []);
       setError(null);
     } catch (err) {
@@ -68,6 +72,14 @@ export default function ProductPage() {
       [name]: value,
     }));
   };
+
+  // Auto-sync form date with selected filter date
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      date: selectedDate,
+    }));
+  }, [selectedDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,11 +144,52 @@ export default function ProductPage() {
     }
   };
 
+  const handlePrint = () => {
+    const printData = entries.map(entry => ({
+      date: formatDateIndian(entry.date),
+      size: entry.size_mm,
+      quantity: entry.quantity.toFixed(2),
+      box: entry.quantity_box?.toFixed(2) || '-',
+      colour: entry.colour || '-',
+      type: entry.product_type || '-',
+      remarks: entry.remarks || '-',
+    }));
+
+    printTable('Production History', printData, [
+      { key: 'date', label: 'Date' },
+      { key: 'size', label: 'Size (mm)' },
+      { key: 'quantity', label: 'Quantity (m)' },
+      { key: 'box', label: 'Qty (box)' },
+      { key: 'colour', label: 'Colour' },
+      { key: 'type', label: 'Type' },
+      { key: 'remarks', label: 'Remarks' },
+    ]);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <TopBar title="Product" subtitle="Finished goods production" />
+      <TopBar title="Product" subtitle="Log finished goods manufacturing output" />
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Filter Card */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Filter by Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Showing production for:</p>
+              <p className="text-lg font-bold text-gray-900">{formatDateIndian(new Date(selectedDate))}</p>
+            </div>
+          </div>
+        </div>
+
         {/* Form Card */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-lg font-bold mb-4 text-gray-800">New Product Entry</h2>
@@ -155,19 +208,6 @@ export default function ProductPage() {
 
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">Date</label>
-              <input
-                type="date"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
-            </div>
-
-            <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Size (mm)</label>
               <select
                 name="size_mm"
@@ -177,7 +217,6 @@ export default function ProductPage() {
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
                 required
               >
-                <option value="0">Unsize</option>
                 {sizes.map(s => (
                   <option key={s} value={s}>
                     {s} mm
@@ -260,7 +299,7 @@ export default function ProductPage() {
               />
             </div>
 
-            <div className="lg:col-span-4 flex items-end justify-end">
+            <div className="lg:col-span-4 flex items-end">
               <button
                 type="submit"
                 disabled={loading}
@@ -274,7 +313,17 @@ export default function ProductPage() {
 
         {/* Table Card */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-lg font-bold mb-4 text-gray-800">Production History</h2>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+            <h2 className="text-lg font-bold text-gray-800">Production History</h2>
+            {entries.length > 0 && (
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                🖨️ Print
+              </button>
+            )}
+          </div>
 
           {entries.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
@@ -296,27 +345,22 @@ export default function ProductPage() {
                   <tr>
                     <th className="text-left px-3 py-3 font-semibold text-gray-700">Date</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Size (mm)</th>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Type / Colour</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Quantity (m)</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Qty (m)</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Qty (box)</th>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Remarks</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Colour</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Type</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {entries.map(entry => (
                     <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="px-3 py-4 text-gray-600 tabular-nums">{formatDate(entry.date)}</td>
-                      <td className="text-center px-3 py-4 text-gray-900 font-medium">{entry.size_mm === 0 ? 'Unsize' : `${entry.size_mm} mm`}</td>
-                      <td className="px-3 py-4 text-gray-700 text-xs">
-                        {entry.product_type || '-'} <br/>
-                        <span className="text-gray-500">{entry.colour || '-'}</span>
-                      </td>
-                      <td className="text-center px-3 py-4 tabular-nums font-bold text-gray-800">{entry.quantity.toFixed(2)}</td>
-                      <td className="text-center px-3 py-4 tabular-nums text-gray-600">{entry.quantity_box ?? '-'}</td>
-                      <td className="px-3 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
-                        {entry.remarks || '-'}
-                      </td>
+                      <td className="px-3 py-4 text-gray-600 tabular-nums">{formatDateIndian(entry.date)}</td>
+                      <td className="text-center px-3 py-4 text-gray-700">{entry.size_mm}</td>
+                      <td className="text-center px-3 py-4 tabular-nums font-medium text-blue-600">{formatIndianNumber(entry.quantity)}</td>
+                      <td className="text-center px-3 py-4 tabular-nums text-gray-700">{entry.quantity_box ? formatIndianNumber(entry.quantity_box) : '-'}</td>
+                      <td className="text-center px-3 py-4 text-gray-700 text-sm">{entry.colour || '-'}</td>
+                      <td className="px-3 py-4 text-gray-700 text-xs">{entry.product_type || '-'}</td>
                       <td className="text-center px-3 py-4">
                         <button
                           onClick={() => handleDelete(entry.id)}
