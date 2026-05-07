@@ -176,8 +176,8 @@ export const purchaseService = {
     if (purchase.size_mm) {
       await StockService.recalculateStock(purchase.date, undefined, purchase.size_mm);
     }
-    if (purchase.completed_at) {
-      await StockService.recalculateStock(purchase.completed_at, matId || undefined);
+    if ((purchase as any).completed_at) {
+      await StockService.recalculateStock((purchase as any).completed_at, matId || undefined);
     }
 
     return purchase;
@@ -238,17 +238,17 @@ export const purchaseService = {
     // Update stock for current state
     const currentMatId = purchase.material?.id;
     if (purchase.size_mm) await StockService.recalculateStock(purchase.date, undefined, purchase.size_mm);
-    if (purchase.completed_at) await StockService.recalculateStock(purchase.completed_at, currentMatId || undefined);
+    if ((purchase as any).completed_at) await StockService.recalculateStock((purchase as any).completed_at, currentMatId || undefined);
     
     // If date, material, size or completed changed, also update the old record's stock
     if (existing.date.getTime() !== purchase.date.getTime() || 
         existingMatId !== currentMatId ||
         existing.size_mm !== purchase.size_mm ||
-        existing.completed !== purchase.completed ||
-        (existing.completed_at?.getTime() !== purchase.completed_at?.getTime())) {
+        (existing.completed !== purchase.completed ||
+        ((existing as any).completed_at?.getTime() !== (purchase as any).completed_at?.getTime()))) {
       if (existingMatId) await StockService.recalculateStock(existing.date, existingMatId);
       if (existing.size_mm) await StockService.recalculateStock(existing.date, undefined, existing.size_mm);
-      if (existing.completed_at) await StockService.recalculateStock(existing.completed_at, existingMatId || undefined);
+      if ((existing as any).completed_at) await StockService.recalculateStock((existing as any).completed_at, existingMatId || undefined);
     }
 
     return purchase;
@@ -282,11 +282,11 @@ export const purchaseService = {
     const materialId = purchase.material?.id;
     if (materialId) {
       await StockService.recalculateStock(purchase.date, materialId);
-      if (purchase.completed_at) {
-        await StockService.recalculateStock(purchase.completed_at, materialId);
-      } else if (existing.completed_at) {
+      if ((purchase as any).completed_at) {
+        await StockService.recalculateStock((purchase as any).completed_at, materialId);
+      } else if ((existing as any).completed_at) {
         // If it was just unmarked as completed, recalculate for the old consumption date
-        await StockService.recalculateStock(existing.completed_at, materialId);
+        await StockService.recalculateStock((existing as any).completed_at, materialId);
       }
     }
     if (purchase.size_mm) {

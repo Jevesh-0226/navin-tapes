@@ -267,16 +267,16 @@ export class StockService {
       currentBalance = await this.calculateProductStock(dayStart, size_mm, colour || null, product_type || null).then(d => d.balance);
     }
 
-    const futureRecords = await db.stock.findMany({
-      where: {
-        date: { gt: dayStart },
-        materialId: materialId !== undefined ? materialId : null,
-        size_mm: size_mm !== undefined ? size_mm : null,
-        colour: colour || null,
-        product_type: product_type || null,
-      },
-      orderBy: { date: 'asc' },
-    });
+    // Using raw SQL to get future records including 'consumed' which Prisma might not know about
+    const futureRecords = await db.$queryRaw<any[]>`
+      SELECT * FROM "Stock"
+      WHERE "date" > ${dayStart}
+      AND ("materialId" = ${materialId !== undefined ? materialId : null} OR ("materialId" IS NULL AND ${materialId === undefined}))
+      AND ("size_mm" = ${size_mm !== undefined ? size_mm : null} OR ("size_mm" IS NULL AND ${size_mm === undefined}))
+      AND ("colour" = ${colour || null} OR ("colour" IS NULL AND ${colour === null}))
+      AND ("product_type" = ${product_type || null} OR ("product_type" IS NULL AND ${product_type === null}))
+      ORDER BY "date" ASC
+    `;
 
     for (const record of futureRecords) {
       // For each future record, opening_stock is the balance we just computed
