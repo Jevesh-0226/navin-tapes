@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navigationItems = [
-  { label: 'Dashboard', href: '/', icon: '📊' },
-  { label: 'Purchase', href: '/purchase', icon: '📦' },
-  { label: 'Order', href: '/order', icon: '📝' },
-  { label: 'Product', href: '/product', icon: '⚙️' },
-  { label: 'Sales', href: '/sales', icon: '💰' },
-  { label: 'Stock', href: '/stock', icon: '📈' },
-  { label: 'Expense', href: '/expense', icon: '💳' },
+  { label: 'Dashboard', href: '/' },
+  { label: 'Purchase', href: '/purchase' },
+  { label: 'Order', href: '/order' },
+  { label: 'Product', href: '/product' },
+  { label: 'Sales', href: '/sales' },
+  { label: 'Stock', href: '/stock' },
+  { label: 'Expense', href: '/expense' },
 ];
 
 export default function Sidebar() {
@@ -36,11 +36,10 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-colors border-l-4 ${isActive
-                  ? 'bg-blue-100 text-blue-600 font-medium border-l-4 border-blue-500'
-                  : 'text-slate-600 hover:bg-gray-100 border-l-4 border-transparent'
+                  ? 'bg-slate-100 text-slate-900 font-bold border-slate-900'
+                  : 'text-slate-600 hover:bg-slate-50 border-transparent'
                 }`}
             >
-              <span className="text-lg">{item.icon}</span>
               <span>{item.label}</span>
             </Link>
           );

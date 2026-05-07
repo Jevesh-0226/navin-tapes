@@ -76,37 +76,31 @@ export default function Home() {
       name: 'Purchase',
       description: 'Record incoming raw materials and quality checks',
       href: '/purchase',
-      icon: '📦',
     },
     {
       name: 'Order',
       description: 'Customer orders and tracking',
       href: '/order',
-      icon: '📝',
     },
     {
       name: 'Product',
       description: 'Log finished goods manufacturing output',
       href: '/product',
-      icon: '⚙️',
     },
     {
       name: 'Sales',
       description: 'Record product distribution to customers',
       href: '/sales',
-      icon: '💰',
     },
     {
       name: 'Stock',
       description: 'Track and manage daily stock balance',
       href: '/stock',
-      icon: '📈',
     },
     {
       name: 'Expense',
       description: 'Log daily operating expenses',
       href: '/expense',
-      icon: '💳',
     },
   ];
 
@@ -183,11 +177,11 @@ export default function Home() {
             Track stock, manage production, and monitor materials in real time.
           </p>
           <p className="text-sm text-slate-500 flex items-center justify-center gap-2">
-            <span>✓ Simple</span>
-            <span>•</span>
-            <span>✓ Accurate</span>
-            <span>•</span>
-            <span>✓ Real-Time</span>
+            <span className="uppercase tracking-widest font-bold text-[10px]">Simple</span>
+            <span className="text-slate-300">•</span>
+            <span className="uppercase tracking-widest font-bold text-[10px]">Accurate</span>
+            <span className="text-slate-300">•</span>
+            <span className="uppercase tracking-widest font-bold text-[10px]">Real-Time</span>
           </p>
         </section>
 
@@ -196,8 +190,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {quickAccessCards.map((card) => (
               <Link key={card.name} href={card.href}>
-                <div className="bg-white border border-slate-200 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer h-full">
-                  <div className="text-3xl mb-3">{card.icon}</div>
+                <div className="bg-white border border-slate-200 rounded-lg p-6 hover:border-slate-400 transition-colors cursor-pointer h-full">
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">{card.name}</h3>
                   <p className="text-sm text-slate-600 mb-4">{card.description}</p>
                   <button className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">

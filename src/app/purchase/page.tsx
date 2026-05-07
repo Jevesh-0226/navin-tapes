@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { purchaseAPI, getErrorMessage } from '@/lib/api-client';
 import { getToday, formatDateIndian, formatIndianNumber, formatCurrency, printTable } from '@/lib/utils';
+import { handleEnterNavigation } from '@/lib/form-nav';
 
 interface Purchase {
   id: number;
@@ -11,10 +12,12 @@ interface Purchase {
   invoice_no: string;
   supplier: string;
   material?: { id: number; name: string };
-  materialId: number;
+  materialId?: number;
+  size_mm?: string | null;
   quantity_kg: number;
   quantity_box?: number | null;
   amount?: number | null;
+  completed: boolean;
   remarks?: string | null;
 }
 
@@ -40,7 +43,6 @@ export default function PurchasePage() {
   useEffect(() => {
     fetchPurchasesForDate(selectedDate);
     fetchMaterials();
-    // Cleanup: clear loading and messages when component unmounts
     return () => {
       setLoading(false);
       setError(null);
@@ -68,50 +70,27 @@ export default function PurchasePage() {
   const fetchMaterials = async () => {
     try {
       const response = await fetch('/api/material');
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
       const result = await response.json();
       if (result.success && result.data) {
         setMaterials(result.data);
-        setMaterialsError(null);
-      } else {
-        setMaterialsError('No materials available. Please add materials first.');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch materials';
       console.error('Failed to fetch materials:', err);
-      setMaterialsError(message);
     }
   };
-
-  const handleDateChange = (date: string) => {
-    setSelectedDate(date);
-  };
-
-  // Auto-sync form date with selected filter date
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      date: selectedDate,
-    }));
-  }, [selectedDate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!formData.invoice_no || !formData.supplier || !formData.quantity_kg || !formData.materialId) {
-      setError('Please fill all required fields, including Material');
+      setError('Please fill all required fields');
       return;
     }
 
@@ -123,7 +102,6 @@ export default function PurchasePage() {
         invoice_no: formData.invoice_no,
         supplier: formData.supplier,
         materialId: parseInt(formData.materialId),
-        size_mm: null,
         quantity_kg: parseFloat(formData.quantity_kg),
         quantity_box: formData.quantity_box ? parseFloat(formData.quantity_box) : null,
         amount: formData.amount ? parseFloat(formData.amount) : null,
@@ -135,7 +113,6 @@ export default function PurchasePage() {
         setTimeout(() => setSuccess(null), 3000);
         setFormData(prev => ({
           ...prev,
-          date: getToday(),
           invoice_no: '',
           supplier: '',
           quantity_kg: '',
@@ -143,7 +120,6 @@ export default function PurchasePage() {
           amount: '',
           remarks: '',
         }));
-        // Add new entry to state immediately without waiting for full refetch
         if (response.data?.data) {
           setEntries([response.data.data, ...entries]);
         }
@@ -155,20 +131,35 @@ export default function PurchasePage() {
     }
   };
 
+  const handleToggleCompleted = async (id: number) => {
+    try {
+      const response = await fetch(`/api/purchase/toggle-completed`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setEntries(entries.map(e => e.id === id ? { ...e, completed: !e.completed } : e));
+        setSuccess('Purchase status updated');
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (err) {
+      setError('Failed to update status');
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure?')) return;
-
-    // Optimistic update - remove from UI immediately
     const previousEntries = entries;
     setEntries(entries.filter(e => e.id !== id));
-    setSuccess('Purchase entry deleted');    setTimeout(() => setSuccess(null), 3000);
     try {
       await purchaseAPI.delete(id);
+      setSuccess('Entry deleted');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      // Revert on error
       setEntries(previousEntries);
       setError(getErrorMessage(err));
-      setSuccess(null);
     }
   };
 
@@ -177,20 +168,22 @@ export default function PurchasePage() {
       date: formatDateIndian(entry.date),
       invoice_no: entry.invoice_no,
       supplier: entry.supplier,
-      material: entry.material?.name || '-',
-      quantity_kg: entry.quantity_kg.toFixed(2),
+      material: entry.material?.name || entry.size_mm || '-',
+      quantity_kg: formatIndianNumber(entry.quantity_kg),
       quantity_box: entry.quantity_box || '-',
       amount: entry.amount ? formatCurrency(entry.amount) : '-',
+      status: entry.completed ? 'Completed' : 'Pending',
     }));
 
     printTable('Purchase History', printData, [
       { key: 'date', label: 'Date' },
       { key: 'invoice_no', label: 'Invoice' },
       { key: 'supplier', label: 'Supplier' },
-      { key: 'material', label: 'Material' },
+      { key: 'material', label: 'Material/Size' },
       { key: 'quantity_kg', label: 'Qty (kg)' },
       { key: 'quantity_box', label: 'Qty (box)' },
       { key: 'amount', label: 'Amount' },
+      { key: 'status', label: 'Status' },
     ]);
   };
 
@@ -199,7 +192,6 @@ export default function PurchasePage() {
       <TopBar title="Purchase" subtitle="Raw material inward" />
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Date Filter */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -207,7 +199,7 @@ export default function PurchasePage() {
               <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) => handleDateChange(e.target.value)}
+                onChange={(e) => setSelectedDate(e.target.value)}
                 className="border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
@@ -218,168 +210,72 @@ export default function PurchasePage() {
           </div>
         </div>
 
-        {/* Form Card */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-lg font-bold mb-4 text-gray-800">New Purchase Entry</h2>
+          {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{error}</div>}
+          {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded text-sm">{success}</div>}
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded text-sm">
-              {success}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <form onSubmit={handleSubmit} onKeyDown={handleEnterNavigation} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Invoice #</label>
-              <input
-                type="text"
-                name="invoice_no"
-                value={formData.invoice_no}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="Invoice number"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
+              <input type="text" name="invoice_no" value={formData.invoice_no} onChange={handleInputChange} placeholder="Invoice number" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Supplier</label>
-              <input
-                type="text"
-                name="supplier"
-                value={formData.supplier}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="Supplier name"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
+              <input type="text" name="supplier" value={formData.supplier} onChange={handleInputChange} placeholder="Supplier name" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Material</label>
-              <select
-                name="materialId"
-                value={formData.materialId}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
-                required
-              >
+              <select name="materialId" value={formData.materialId} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" required>
                 <option value="">Select Material</option>
-                {materials.map(m => (
-                  <option key={m.id} value={m.id.toString()}>
-                    {m.name}
-                  </option>
-                ))}
+                {materials.map(m => <option key={m.id} value={m.id.toString()}>{m.name}</option>)}
               </select>
-              {materialsError && (
-                <p className="text-red-600 text-xs mt-1">{materialsError}</p>
-              )}
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Qty (kg)</label>
-              <input
-                type="number"
-                name="quantity_kg"
-                value={formData.quantity_kg}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="0.00"
-                step="0.01"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                required
-              />
+              <input type="number" name="quantity_kg" value={formData.quantity_kg} onChange={handleInputChange} placeholder="0.00" step="0.01" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Qty (box)</label>
-              <input
-                type="number"
-                name="quantity_box"
-                value={formData.quantity_box}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="0"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
+              <input type="number" name="quantity_box" value={formData.quantity_box} onChange={handleInputChange} placeholder="0" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Amount</label>
-              <input
-                type="number"
-                name="amount"
-                value={formData.amount}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="0.00"
-                step="0.01"
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
+              <input type="number" name="amount" value={formData.amount} onChange={handleInputChange} placeholder="0.00" step="0.01" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
-
             <div className="lg:col-span-2">
               <label className="block text-sm font-medium mb-1 text-gray-700">Remarks</label>
-              <textarea
-                name="remarks"
-                value={formData.remarks}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSubmit(e as any))}
-                placeholder="Any additional notes"
-                rows={2}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
+              <textarea name="remarks" value={formData.remarks} onChange={handleInputChange} placeholder="Any additional notes" rows={2} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
-
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full md:w-auto px-8 bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
-              >
+            <div className="flex justify-end items-end">
+              <button type="submit" disabled={loading} className="w-full md:w-auto px-8 bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm">
                 {loading ? 'Creating...' : 'Add Purchase Entry'}
               </button>
             </div>
           </form>
         </div>
 
-        {/* Summary */}
-        {entries.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p className="text-sm text-blue-600">Total Quantity (kg)</p>
-              <p className="text-2xl font-bold text-blue-900">{formatIndianNumber(entries.reduce((sum, e) => sum + e.quantity_kg, 0))}</p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-              <p className="text-sm text-green-600">Total Amount</p>
-              <p className="text-2xl font-bold text-green-900">{formatCurrency(entries.reduce((sum, e) => sum + (e.amount || 0), 0))}</p>
-            </div>
-            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-              <p className="text-sm text-purple-600">Entries</p>
-              <p className="text-2xl font-bold text-purple-900">{entries.length}</p>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <p className="text-sm text-blue-600">Total Quantity (kg)</p>
+            <p className="text-2xl font-bold text-blue-900">{formatIndianNumber(entries.reduce((sum, e) => sum + e.quantity_kg, 0))}</p>
           </div>
-        )}
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <p className="text-sm text-green-600">Total Amount</p>
+            <p className="text-2xl font-bold text-green-900">{formatCurrency(entries.reduce((sum, e) => sum + (e.amount || 0), 0))}</p>
+          </div>
+          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+            <p className="text-sm text-purple-600">Entries</p>
+            <p className="text-2xl font-bold text-purple-900">{entries.length}</p>
+          </div>
+        </div>
 
-        {/* Table Card */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
             <h2 className="text-lg font-bold text-gray-800">Purchase History</h2>
             {entries.length > 0 && (
-              <button
-                onClick={handlePrint}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap"
-              >
-                🖨️ Print
+              <button onClick={handlePrint} className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap">
+                Print
               </button>
             )}
           </div>
@@ -400,6 +296,7 @@ export default function PurchasePage() {
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Qty (kg)</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Qty (box)</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Amount</th>
+                    <th className="text-center px-6 py-3 font-semibold text-gray-700">Completed</th>
                     <th className="text-left px-6 py-3 font-semibold text-gray-700">Remarks</th>
                     <th className="text-center px-6 py-3 font-semibold text-gray-700">Action</th>
                   </tr>
@@ -410,22 +307,23 @@ export default function PurchasePage() {
                       <td className="px-6 py-4 text-gray-600 tabular-nums">{formatDateIndian(entry.date)}</td>
                       <td className="px-6 py-4 text-gray-700 font-medium">{entry.invoice_no}</td>
                       <td className="px-6 py-4 text-gray-700">{entry.supplier}</td>
-                      <td className="px-6 py-4 text-gray-900 font-semibold">
-                        {entry.material?.name || '-'}
-                      </td>
+                      <td className="px-6 py-4 text-gray-900 font-semibold">{entry.material?.name || entry.size_mm || '-'}</td>
                       <td className="text-center px-6 py-4 tabular-nums font-bold text-gray-800">{formatIndianNumber(entry.quantity_kg)}</td>
                       <td className="text-center px-6 py-4 tabular-nums text-gray-600">{entry.quantity_box || '-'}</td>
                       <td className="text-center px-6 py-4 tabular-nums text-gray-800">{entry.amount ? formatCurrency(entry.amount) : '-'}</td>
-                      <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
-                        {entry.remarks || '-'}
-                      </td>
                       <td className="text-center px-6 py-4">
                         <button
-                          onClick={() => handleDelete(entry.id)}
-                          className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline"
+                          onClick={() => handleToggleCompleted(entry.id)}
+                          className={`px-3 py-1 rounded text-xs font-bold transition-colors ${
+                            entry.completed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-blue-100 hover:text-blue-700'
+                          }`}
                         >
-                          Delete
+                          {entry.completed ? 'Completed' : 'Mark Used'}
                         </button>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>{entry.remarks || '-'}</td>
+                      <td className="text-center px-6 py-4">
+                        <button onClick={() => handleDelete(entry.id)} className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline">Delete</button>
                       </td>
                     </tr>
                   ))}

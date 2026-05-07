@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (size_mm && size_mm !== 'all') {
-      where.size_mm = parseInt(size_mm, 10);
+      where.size_mm = size_mm;
     }
 
     if (colour && colour !== 'all') {
@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
         materialId: true,
         size_mm: true,
         colour: true,
+        product_type: true,
         opening_stock: true,
         purchase: true,
         production: true,
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
         { materialId: 'asc' },
         { size_mm: 'asc' },
         { colour: 'asc' },
+        { product_type: 'asc' },
       ],
     });
 

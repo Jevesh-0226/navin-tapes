@@ -6,8 +6,9 @@ interface StockEntry {
   id: number;
   date: string | Date;
   materialId: number | null;
-  size_mm: number | null;
+  size_mm: string | null;
   colour?: string | null;
+  product_type?: string | null;
   opening_stock: number;
   purchase: number;
   production: number;
@@ -46,12 +47,13 @@ export default function StockTable({ data, loading, type }: StockTableProps) {
       <div className="overflow-x-auto">
         <table className="w-full border-collapse table-fixed">
           <colgroup>
-            <col style={{ width: '16.66%' }} />
-            <col style={{ width: '16.66%' }} />
-            <col style={{ width: '16.66%' }} />
-            <col style={{ width: '16.66%' }} />
-            <col style={{ width: '16.66%' }} />
-            <col style={{ width: '16.66%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '16%' }} />
           </colgroup>
 
           <thead className="bg-gray-100 text-sm font-semibold text-gray-700 border-b">
@@ -60,7 +62,10 @@ export default function StockTable({ data, loading, type }: StockTableProps) {
               {type === 'material' ? (
                 <th className="px-3 py-3 text-center">Material</th>
               ) : (
-                <th className="px-3 py-3 text-center">Size (mm)</th>
+                <>
+                  <th className="px-3 py-3 text-center">Product</th>
+                  <th className="px-3 py-3 text-center">Size (mm)</th>
+                </>
               )}
               <th className="px-3 py-3 text-center">Opening</th>
               {type === 'material' ? (
@@ -87,9 +92,14 @@ export default function StockTable({ data, loading, type }: StockTableProps) {
                     {row.material?.name || '-'}
                   </td>
                 ) : (
-                  <td className="px-3 py-4 text-center font-bold text-blue-700">
-                    {row.size_mm} mm {row.colour ? `(${row.colour})` : ''}
-                  </td>
+                  <>
+                    <td className="px-3 py-4 text-center font-bold text-gray-900">
+                      {row.product_type || '-'}
+                    </td>
+                    <td className="px-3 py-4 text-center font-bold text-blue-700">
+                      {row.size_mm} {row.colour ? `(${row.colour})` : ''}
+                    </td>
+                  </>
                 )}
 
                 <td className="px-3 py-4 text-center tabular-nums">

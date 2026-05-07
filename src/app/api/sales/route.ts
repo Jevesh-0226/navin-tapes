@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     } else if (customer) {
       data = await salesService.getByCustomer(decodeURIComponent(customer));
     } else if (size) {
-      data = await salesService.getBySize(parseInt(size, 10));
+      data = await salesService.getBySize(size);
     } else {
       data = await salesService.getAll();
     }

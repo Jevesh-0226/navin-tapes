@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const product = await db.product.create({
       data: {
         date: new Date(date),
-        size_mm: parseInt(size_mm),
+        size_mm: size_mm.toString(),
         quantity: parseFloat(quantity),
         quantity_box: quantity_box ? parseFloat(quantity_box) : null,
         colour: colour || null,
@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update stock for this size, colour and date
-    await StockService.recalculateStock(new Date(date), undefined, parseInt(size_mm), colour || null);
+    // Update stock for this size, colour, product type and date
+    await StockService.recalculateStock(new Date(date), undefined, size_mm.toString(), colour || null, product_type || null);
 
     return NextResponse.json({ success: true, data: product });
   } catch (error) {

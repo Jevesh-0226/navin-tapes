@@ -10,11 +10,11 @@ export const purchaseService = {
         date: true,
         invoice_no: true,
         supplier: true,
-        materialId: true,
         size_mm: true,
         quantity_kg: true,
         quantity_box: true,
         amount: true,
+        completed: true,
         remarks: true,
         material: { select: { id: true, name: true } },
       },
@@ -41,11 +41,11 @@ export const purchaseService = {
         date: true,
         invoice_no: true,
         supplier: true,
-        materialId: true,
         size_mm: true,
         quantity_kg: true,
         quantity_box: true,
         amount: true,
+        completed: true,
         remarks: true,
         material: { select: { id: true, name: true } },
       },
@@ -64,11 +64,11 @@ export const purchaseService = {
         date: true,
         invoice_no: true,
         supplier: true,
-        materialId: true,
         size_mm: true,
         quantity_kg: true,
         quantity_box: true,
         amount: true,
+        completed: true,
         remarks: true,
         material: { select: { id: true, name: true } },
       },
@@ -87,11 +87,11 @@ export const purchaseService = {
         date: true,
         invoice_no: true,
         supplier: true,
-        materialId: true,
         size_mm: true,
         quantity_kg: true,
         quantity_box: true,
         amount: true,
+        completed: true,
         remarks: true,
         material: { select: { id: true, name: true } },
       },
@@ -110,11 +110,11 @@ export const purchaseService = {
         date: true,
         invoice_no: true,
         supplier: true,
-        materialId: true,
         size_mm: true,
         quantity_kg: true,
         quantity_box: true,
         amount: true,
+        completed: true,
         remarks: true,
         material: { select: { id: true, name: true } },
       },
@@ -139,11 +139,12 @@ export const purchaseService = {
         date: new Date(data.date),
         invoice_no: data.invoice_no,
         supplier: data.supplier,
-        materialId: data.materialId || null,
-        size_mm: data.size_mm || null,
+        material: data.materialId ? { connect: { id: data.materialId } } : undefined,
+        size_mm: data.size_mm ? String(data.size_mm) : null,
         quantity_kg: data.quantity_kg,
         quantity_box: data.quantity_box || null,
         amount: data.amount || null,
+        completed: data.completed || false,
         remarks: data.remarks || null,
       },
       select: {
@@ -151,22 +152,32 @@ export const purchaseService = {
         date: true,
         invoice_no: true,
         supplier: true,
-        materialId: true,
         size_mm: true,
         quantity_kg: true,
         quantity_box: true,
         amount: true,
+        completed: true,
         remarks: true,
         material: { select: { id: true, name: true } },
       },
     });
 
+    // Manually update completed_at using raw SQL
+    if (data.completed) {
+      await db.$executeRaw`UPDATE "Purchase" SET "completed_at" = ${new Date(data.date)} WHERE id = ${purchase.id}`;
+      (purchase as any).completed_at = new Date(data.date);
+    }
+
     // Update stock for either material or size
-    if (purchase.materialId) {
-      await StockService.recalculateStock(purchase.date, purchase.materialId);
+    const matId = purchase.material?.id;
+    if (matId) {
+      await StockService.recalculateStock(purchase.date, matId);
     }
     if (purchase.size_mm) {
       await StockService.recalculateStock(purchase.date, undefined, purchase.size_mm);
+    }
+    if (purchase.completed_at) {
+      await StockService.recalculateStock(purchase.completed_at, matId || undefined);
     }
 
     return purchase;
@@ -177,7 +188,8 @@ export const purchaseService = {
     const existing = await db.purchase.findUnique({ where: { id } });
     if (!existing) throw new Error('Purchase entry not found');
 
-    if (data.materialId && data.materialId !== existing.materialId) {
+    const existingMatId = existing.materialId;
+    if (data.materialId && data.materialId !== existingMatId) {
       const material = await db.material.findUnique({
         where: { id: data.materialId },
         select: { id: true, name: true },
@@ -193,11 +205,12 @@ export const purchaseService = {
         ...(data.date !== undefined && { date: new Date(data.date) }),
         ...(data.invoice_no !== undefined && { invoice_no: data.invoice_no }),
         ...(data.supplier !== undefined && { supplier: data.supplier }),
-        ...(data.materialId !== undefined && { materialId: data.materialId }),
-        ...(data.size_mm !== undefined && { size_mm: data.size_mm }),
+        ...(data.materialId !== undefined && { material: data.materialId ? { connect: { id: data.materialId } } : { disconnect: true } }),
+        ...(data.size_mm !== undefined && { size_mm: data.size_mm ? String(data.size_mm) : null }),
         ...(data.quantity_kg !== undefined && { quantity_kg: data.quantity_kg }),
         ...(data.quantity_box !== undefined && { quantity_box: data.quantity_box }),
         ...(data.amount !== undefined && { amount: data.amount }),
+        ...(data.completed !== undefined && { completed: data.completed }),
         ...(data.remarks !== undefined && { remarks: data.remarks || null }),
       },
       select: {
@@ -205,26 +218,79 @@ export const purchaseService = {
         date: true,
         invoice_no: true,
         supplier: true,
-        materialId: true,
         size_mm: true,
         quantity_kg: true,
         quantity_box: true,
         amount: true,
+        completed: true,
         remarks: true,
         material: { select: { id: true, name: true } },
       },
     });
 
+    // Manually update completed_at using raw SQL
+    if (data.completed !== undefined) {
+      const completedAt = data.completed ? ((existing as any).completed_at || new Date()) : null;
+      await db.$executeRaw`UPDATE "Purchase" SET "completed_at" = ${completedAt} WHERE id = ${id}`;
+      (purchase as any).completed_at = completedAt;
+    }
+
     // Update stock for current state
-    if (purchase.materialId) await StockService.recalculateStock(purchase.date, purchase.materialId);
+    const currentMatId = purchase.material?.id;
     if (purchase.size_mm) await StockService.recalculateStock(purchase.date, undefined, purchase.size_mm);
+    if (purchase.completed_at) await StockService.recalculateStock(purchase.completed_at, currentMatId || undefined);
     
-    // If date, material or size changed, also update the old record's stock
+    // If date, material, size or completed changed, also update the old record's stock
     if (existing.date.getTime() !== purchase.date.getTime() || 
-        existing.materialId !== purchase.materialId ||
-        existing.size_mm !== purchase.size_mm) {
-      if (existing.materialId) await StockService.recalculateStock(existing.date, existing.materialId);
+        existingMatId !== currentMatId ||
+        existing.size_mm !== purchase.size_mm ||
+        existing.completed !== purchase.completed ||
+        (existing.completed_at?.getTime() !== purchase.completed_at?.getTime())) {
+      if (existingMatId) await StockService.recalculateStock(existing.date, existingMatId);
       if (existing.size_mm) await StockService.recalculateStock(existing.date, undefined, existing.size_mm);
+      if (existing.completed_at) await StockService.recalculateStock(existing.completed_at, existingMatId || undefined);
+    }
+
+    return purchase;
+  },
+
+  // Toggle completed status
+  async toggleCompleted(id: number) {
+    const existing = await db.purchase.findUnique({ where: { id } });
+    if (!existing) throw new Error('Purchase entry not found');
+
+    const purchase = await db.purchase.update({
+      where: { id },
+      data: { 
+        completed: !existing.completed,
+      },
+      select: {
+        id: true,
+        date: true,
+        material: { select: { id: true } },
+        size_mm: true,
+        completed: true,
+      },
+    });
+
+    // Manually update completed_at using raw SQL
+    const newCompletedAt = !existing.completed ? new Date() : null;
+    await db.$executeRaw`UPDATE "Purchase" SET "completed_at" = ${newCompletedAt} WHERE id = ${id}`;
+    (purchase as any).completed_at = newCompletedAt;
+
+    // Recalculate stock for both the original purchase date and the consumption date
+    const materialId = purchase.material?.id;
+    if (materialId) {
+      await StockService.recalculateStock(purchase.date, materialId);
+      if (purchase.completed_at) {
+        await StockService.recalculateStock(purchase.completed_at, materialId);
+      } else if (existing.completed_at) {
+        // If it was just unmarked as completed, recalculate for the old consumption date
+        await StockService.recalculateStock(existing.completed_at, materialId);
+      }
+    }
+    if (purchase.size_mm) {
+      await StockService.recalculateStock(purchase.date, undefined, purchase.size_mm);
     }
 
     return purchase;

@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { salesAPI, getErrorMessage } from '@/lib/api-client';
 import { getToday, formatDateIndian, formatCurrency, formatIndianNumber, printTable } from '@/lib/utils';
+import { handleEnterNavigation } from '@/lib/form-nav';
 
 interface Sales {
   id: number;
   date: string;
   customer_name: string;
-  size_mm: number;
+  size_mm: string;
   quantity: number;
   rate: number;
   amount: number;
@@ -32,6 +33,7 @@ export default function SalesPage() {
     date: getToday(),
     customer_name: '',
     size_mm: '3',
+    custom_size: '',
     quantity: '',
     rate: '',
     colour: '',
@@ -42,13 +44,12 @@ export default function SalesPage() {
     remarks: '',
   });
 
-  const sizes = [3, 4, 6, 8, 10, 15, 18, 20, 25, 30, 35, 40, 45, 50, 55];
+  const sizes = ['3', '4', '6', '8', '10', '15', '18', '20', '25', '30', '35', '40', '45', '50', '55', 'Unsize'];
   const COLOURS = ['Black', 'White', 'Other'];
   const PRODUCT_TYPES = ['Rubber Elastic', '840 Lycra', '840 Lycra Finishing', '1120 Lycra Finishing'];
 
   useEffect(() => {
     fetchSalesForDate(selectedDate);
-    // Cleanup: clear loading and messages when component unmounts
     return () => {
       setLoading(false);
       setError(null);
@@ -77,25 +78,19 @@ export default function SalesPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Auto-sync form date with selected filter date
   useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      date: selectedDate,
-    }));
+    setFormData(prev => ({ ...prev, date: selectedDate }));
   }, [selectedDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const finalSize = formData.size_mm === 'Unsize' ? formData.custom_size : formData.size_mm;
 
-    if (!formData.customer_name || !formData.quantity || !formData.rate || !formData.po_number) {
-      setError('Please fill all required fields, including PO Number');
+    if (!formData.customer_name || !formData.quantity || !formData.rate || !formData.po_number || (formData.size_mm === 'Unsize' && !formData.custom_size)) {
+      setError('Please fill all required fields');
       return;
     }
 
@@ -105,7 +100,7 @@ export default function SalesPage() {
       const response = await salesAPI.create({
         date: formData.date,
         customer_name: formData.customer_name,
-        size_mm: parseInt(formData.size_mm),
+        size_mm: finalSize,
         quantity: parseFloat(formData.quantity),
         rate: parseFloat(formData.rate),
         colour: formData.colour || null,
@@ -120,9 +115,10 @@ export default function SalesPage() {
         setSuccess('Sales entry created successfully');
         setTimeout(() => setSuccess(null), 3000);
         setFormData({
-          date: getToday(),
+          date: selectedDate,
           customer_name: '',
           size_mm: '3',
+          custom_size: '',
           quantity: '',
           rate: '',
           colour: '',
@@ -132,7 +128,6 @@ export default function SalesPage() {
           dc_number: '',
           remarks: '',
         });
-        // Add new entry to state immediately without waiting for full refetch
         if (response.data?.data) {
           setEntries([response.data.data, ...entries]);
         }
@@ -146,20 +141,15 @@ export default function SalesPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure?')) return;
-
-    // Optimistic update - remove from UI immediately
     const previousEntries = entries;
     setEntries(entries.filter(e => e.id !== id));
-    setSuccess('Sales entry deleted');
-    setTimeout(() => setSuccess(null), 3000);
-
     try {
       await salesAPI.delete(id);
+      setSuccess('Entry deleted');
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      // Revert on error
       setEntries(previousEntries);
       setError(getErrorMessage(err));
-      setSuccess(null);
     }
   };
 
@@ -168,14 +158,14 @@ export default function SalesPage() {
       date: formatDateIndian(new Date(entry.date)),
       customer: entry.customer_name,
       po_number: entry.po_number || '-',
-      size: entry.size_mm === 0 ? 'Unsize' : `${entry.size_mm} mm`,
-      quantity: entry.quantity.toFixed(2),
+      size: entry.size_mm,
+      quantity: formatIndianNumber(entry.quantity),
       rate: formatCurrency(entry.rate),
       amount: formatCurrency(entry.amount),
       colour: entry.colour || '-',
     }));
 
-    printTable('Sales History', printData, [
+    printTable(`Sales History - ${formatDateIndian(selectedDate)}`, printData, [
       { key: 'date', label: 'Date' },
       { key: 'customer', label: 'Customer' },
       { key: 'po_number', label: 'PO #' },
@@ -187,30 +177,23 @@ export default function SalesPage() {
     ]);
   };
 
-  // Filter entries for today only
-  const todayEntries = entries.filter(
-    e => formatDateIndian(new Date(e.date)) === formatDateIndian(new Date())
+  const filteredEntries = entries.filter(
+    e => formatDateIndian(new Date(e.date)) === formatDateIndian(new Date(selectedDate))
   );
 
-  const totalAmount = todayEntries.reduce((sum, e) => sum + e.amount, 0);
-  const totalQuantity = todayEntries.reduce((sum, e) => sum + e.quantity, 0);
+  const totalAmount = filteredEntries.reduce((sum, e) => sum + e.amount, 0);
+  const totalQuantity = filteredEntries.reduce((sum, e) => sum + e.quantity, 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <TopBar title="Sales" subtitle="Product distribution to customers" />
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Date Filter */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-700">Filter by Date</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
+              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Showing sales for:</p>
@@ -219,205 +202,94 @@ export default function SalesPage() {
           </div>
         </div>
 
-        {/* Form Card */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-lg font-bold mb-4">New Sales Entry</h2>
+          {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{error}</div>}
+          {success && <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded text-sm">{success}</div>}
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
-              {success}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <form onSubmit={handleSubmit} onKeyDown={handleEnterNavigation} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Customer Name</label>
-              <input
-                type="text"
-                name="customer_name"
-                value={formData.customer_name}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="Customer name"
-                className="w-full border rounded px-3 py-2"
-                required
-              />
+              <label className="block text-sm font-medium mb-1">Customer Name <span className="text-red-500">*</span></label>
+              <input type="text" name="customer_name" value={formData.customer_name} onChange={handleInputChange} placeholder="Customer name" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Size (mm) <span className="text-red-500">*</span></label>
+              <div className="grid grid-cols-2 gap-2">
+                <select name="size_mm" value={formData.size_mm} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" required>
+                  {sizes.map(s => <option key={s} value={s}>{s === 'Unsize' ? s : `${s} mm`}</option>)}
+                </select>
+                {formData.size_mm === 'Unsize' && (
+                  <input type="text" name="custom_size" value={formData.custom_size} onChange={handleInputChange} placeholder="Enter Size" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
+                )}
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Size (mm)</label>
-              <select
-                name="size_mm"
-                value={formData.size_mm}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                className="w-full border rounded px-3 py-2 bg-white"
-              >
-                <option value="0">Unsize</option>
-                {sizes.map(s => (
-                  <option key={s} value={s}>
-                    {s} mm
-                  </option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium mb-1">Quantity (meters) <span className="text-red-500">*</span></label>
+              <input type="number" name="quantity" value={formData.quantity} onChange={handleInputChange} placeholder="0.00" step="0.01" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Quantity (meters)</label>
-              <input
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="0.00"
-                step="0.01"
-                className="w-full border rounded px-3 py-2"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Rate</label>
-              <input
-                type="number"
-                name="rate"
-                value={formData.rate}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="0.00"
-                step="0.01"
-                className="w-full border rounded px-3 py-2"
-                required
-              />
+              <label className="block text-sm font-medium mb-1">Rate <span className="text-red-500">*</span></label>
+              <input type="number" name="rate" value={formData.rate} onChange={handleInputChange} placeholder="0.00" step="0.01" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Amount</label>
-              <input
-                type="number"
-                disabled
-                value={
-                  formData.quantity && formData.rate
-                    ? (parseFloat(formData.quantity) * parseFloat(formData.rate)).toFixed(2)
-                    : ''
-                }
-                className="w-full border rounded px-3 py-2 bg-gray-100"
-              />
+              <div className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50 text-gray-700 font-semibold h-10 flex items-center">
+                {formData.quantity && formData.rate ? formatCurrency(parseFloat(formData.quantity) * parseFloat(formData.rate)) : '₹0.00'}
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Colour</label>
-              <select
-                name="colour"
-                value={formData.colour}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                className="w-full border rounded px-3 py-2 bg-white"
-              >
+              <select name="colour" value={formData.colour} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
                 <option value="">Select Colour</option>
-                {COLOURS.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+                {COLOURS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Type of Product</label>
-              <select
-                name="product_type"
-                value={formData.product_type}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                className="w-full border rounded px-3 py-2 bg-white"
-              >
+              <select name="product_type" value={formData.product_type} onChange={handleInputChange} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
                 <option value="">Select Type</option>
-                {PRODUCT_TYPES.map(t => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                {PRODUCT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">Qty (box)</label>
-              <input
-                type="number"
-                name="quantity_box"
-                value={formData.quantity_box}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="0"
-                className="w-full border rounded px-3 py-2"
-              />
+              <input type="number" name="quantity_box" value={formData.quantity_box} onChange={handleInputChange} placeholder="0" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">PO Number <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                name="po_number"
-                value={formData.po_number}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="PO Number"
-                className="w-full border rounded px-3 py-2"
-                required
-              />
+              <input type="text" name="po_number" value={formData.po_number} onChange={handleInputChange} placeholder="PO Number" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">DC Number</label>
-              <input
-                type="text"
-                name="dc_number"
-                value={formData.dc_number}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                placeholder="DC Number"
-                className="w-full border rounded px-3 py-2"
-              />
+              <input type="text" name="dc_number" value={formData.dc_number} onChange={handleInputChange} placeholder="DC Number" className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
 
-            <div className="lg:col-span-1">
+            <div>
               <label className="block text-sm font-medium mb-1">Remarks</label>
-              <textarea
-                name="remarks"
-                value={formData.remarks}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSubmit(e as any))}
-                placeholder="Any additional notes"
-                rows={2}
-                className="w-full border rounded px-3 py-2"
-              />
+              <textarea name="remarks" value={formData.remarks} onChange={handleInputChange} placeholder="Notes" rows={1} className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
             </div>
 
-            <div className="lg:col-span-3 flex gap-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
-              >
+            <div className="flex items-end">
+              <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50 shadow-sm">
                 {loading ? 'Creating...' : 'Add Sales'}
               </button>
             </div>
           </form>
         </div>
 
-        {/* Summary */}
         {entries.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p className="text-sm text-blue-600">Date</p>
-              <p className="text-lg font-bold text-blue-900">{formatDateIndian(new Date(selectedDate))}</p>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <p className="text-sm text-blue-600">Total Quantity (meters)</p>
+              <p className="text-sm text-blue-600">Total Qty (m)</p>
               <p className="text-2xl font-bold text-blue-900">{formatIndianNumber(totalQuantity)}</p>
             </div>
             <div className="bg-green-50 rounded-lg p-4 border border-green-200">
@@ -431,80 +303,54 @@ export default function SalesPage() {
           </div>
         )}
 
-        {/* Table Card */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-            <h2 className="text-lg font-bold text-gray-800">Sales Entries</h2>
+            <h2 className="text-lg font-bold text-gray-800">Sales History</h2>
             {entries.length > 0 && (
-              <button
-                onClick={handlePrint}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap"
-              >
-                🖨️ Print
+              <button onClick={handlePrint} className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap">
+                Print
               </button>
             )}
           </div>
 
           {entries.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No sales yet</p>
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+              <p className="text-gray-500">No sales for this date</p>
+            </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border rounded-md">
               <table className="w-full text-sm table-fixed">
-                <colgroup>
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                  <col style={{ width: '8.33%' }} />
-                </colgroup>
                 <thead className="bg-gray-100 border-b">
                   <tr>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Date</th>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Customer</th>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-700">PO #</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">DC #</th>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Type / Colour</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Size</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Qty (m)</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Box</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Rate</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Amount</th>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-700">Remarks</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Action</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700" style={{ width: '10%' }}>Date</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700" style={{ width: '12%' }}>Customer</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700" style={{ width: '10%' }}>PO #</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-700" style={{ width: '12%' }}>Type / Colour</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700" style={{ width: '8%' }}>Size</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700" style={{ width: '8%' }}>Qty (m)</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700" style={{ width: '8%' }}>Box</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700" style={{ width: '10%' }}>Rate</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700" style={{ width: '10%' }}>Amount</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700" style={{ width: '10%' }}>Action</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-100">
                   {entries.map(entry => (
-                    <tr key={entry.id} className="border-t hover:bg-gray-50 transition-colors">
-                      <td className="px-3 py-4 text-gray-600 tabular-nums">{formatDateIndian(new Date(entry.date))}</td>
+                    <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
+                      <td className="px-3 py-4 text-gray-600 tabular-nums">{formatDateIndian(entry.date)}</td>
                       <td className="px-3 py-4 text-gray-800 font-medium">{entry.customer_name}</td>
                       <td className="px-3 py-4 text-gray-700 text-xs">{entry.po_number || '-'}</td>
-                      <td className="text-center px-3 py-4 text-gray-700 text-xs">{entry.dc_number || '-'}</td>
                       <td className="px-3 py-4 text-gray-700 text-xs">
                         {entry.product_type || '-'} <br/>
                         <span className="text-gray-500">{entry.colour || '-'}</span>
                       </td>
-                      <td className="text-center px-3 py-4 text-gray-700">{entry.size_mm === 0 ? 'Unsize' : `${entry.size_mm} mm`}</td>
-                      <td className="text-center px-3 py-4 tabular-nums font-medium text-gray-700">{entry.quantity.toFixed(2)}</td>
-                      <td className="text-center px-3 py-4 tabular-nums text-gray-600">{entry.quantity_box || '-'}</td>
+                      <td className="text-center px-3 py-4 text-gray-700 font-medium">{entry.size_mm}</td>
+                      <td className="text-center px-3 py-4 tabular-nums font-bold text-gray-800">{formatIndianNumber(entry.quantity)}</td>
+                      <td className="text-center px-3 py-4 tabular-nums text-gray-600">{entry.quantity_box ? formatIndianNumber(entry.quantity_box) : '-'}</td>
                       <td className="text-center px-3 py-4 tabular-nums text-gray-600">{formatCurrency(entry.rate)}</td>
                       <td className="text-center px-3 py-4 tabular-nums font-bold text-gray-900">{formatCurrency(entry.amount)}</td>
-                      <td className="px-3 py-4 text-gray-500 text-xs italic max-w-xs truncate" title={entry.remarks || ''}>
-                        {entry.remarks || '-'}
-                      </td>
                       <td className="text-center px-3 py-4">
-                        <button
-                          onClick={() => handleDelete(entry.id)}
-                          className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline"
-                        >
-                          Delete
-                        </button>
+                        <button onClick={() => handleDelete(entry.id)} className="text-red-600 hover:text-red-800 text-xs font-bold hover:underline">Delete</button>
                       </td>
                     </tr>
                   ))}

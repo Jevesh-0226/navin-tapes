@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { orderAPI, getErrorMessage } from '@/lib/api-client';
 import { getToday, formatDateIndian, formatIndianNumber, formatCurrency, printTable } from '@/lib/utils';
+import { handleEnterNavigation } from '@/lib/form-nav';
 
 interface Order {
   id: number;
@@ -32,6 +33,7 @@ export default function OrderPage() {
     po_number: '',
     customer_name: '',
     size_mm: '3',
+    custom_size: '',
     colour: '',
     product_type: '',
     quantity: '',
@@ -43,13 +45,13 @@ export default function OrderPage() {
   const PRODUCT_TYPES = ['Rubber Elastic', '840 Lycra', '840 Lycra Finishing', '1120 Lycra Finishing'];
 
   useEffect(() => {
-    fetchOrders(formData.date);
+    fetchOrders(selectedDate);
     return () => {
       setLoading(false);
       setError(null);
       setSuccess(null);
     };
-  }, [formData.date]);
+  }, [selectedDate]);
 
   const fetchOrders = async (date: string) => {
     try {
@@ -73,17 +75,13 @@ export default function OrderPage() {
       [name]: value,
     }));
   };
-  // Auto-sync form date with selected filter date
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      date: selectedDate,
-    }));
-  }, [selectedDate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.po_number || !formData.customer_name || !formData.quantity || !formData.rate || !formData.colour || !formData.product_type) {
+    const finalSize = formData.size_mm === 'Unsize' ? formData.custom_size : formData.size_mm;
+
+    if (!formData.po_number || !formData.customer_name || !formData.quantity || !formData.rate || !formData.colour || !formData.product_type || (formData.size_mm === 'Unsize' && !formData.custom_size)) {
       setError('Please fill all required fields');
       return;
     }
@@ -95,7 +93,7 @@ export default function OrderPage() {
         date: formData.date,
         po_number: formData.po_number,
         customer_name: formData.customer_name,
-        size_mm: formData.size_mm,
+        size_mm: finalSize,
         colour: formData.colour,
         product_type: formData.product_type,
         quantity: parseFloat(formData.quantity),
@@ -110,6 +108,7 @@ export default function OrderPage() {
           po_number: '',
           customer_name: '',
           size_mm: '3',
+          custom_size: '',
           colour: '',
           product_type: '',
           quantity: '',
@@ -122,7 +121,11 @@ export default function OrderPage() {
           delivered_quantity: 0,
           status: 'PENDING'
         };
-        setEntries(prev => [newEntry, ...prev]);
+        
+        // If the new entry matches the current filter date, add it to list
+        if (formatDateIndian(newEntry.date) === formatDateIndian(selectedDate)) {
+          setEntries(prev => [newEntry, ...prev]);
+        }
       }
     } catch (err) {
       setError(getErrorMessage(err));
@@ -153,14 +156,15 @@ export default function OrderPage() {
       date: formatDateIndian(new Date(entry.date)),
       po_number: entry.po_number,
       customer: entry.customer_name,
-      size: entry.size_mm === 'Unsize' ? entry.size_mm : `${entry.size_mm} mm`,
-      ordered: entry.quantity.toFixed(2),
-      delivered: entry.delivered_quantity.toFixed(2),
-      remaining: Math.max(0, entry.quantity - entry.delivered_quantity).toFixed(2),
-      status: entry.status === 'COMPLETED' ? '✔ Completed' : 'Pending',
+      size: entry.size_mm,
+      ordered: formatIndianNumber(entry.quantity),
+      delivered: formatIndianNumber(entry.delivered_quantity),
+      remaining: formatIndianNumber(Math.max(0, entry.quantity - entry.delivered_quantity)),
+      amount: formatCurrency(entry.amount),
+      status: entry.status === 'COMPLETED' ? 'Completed' : 'Pending',
     }));
 
-    printTable('Order Tracking', printData, [
+    printTable(`Order Tracking - ${formatDateIndian(selectedDate)}`, printData, [
       { key: 'date', label: 'Date' },
       { key: 'po_number', label: 'PO Number' },
       { key: 'customer', label: 'Customer' },
@@ -168,6 +172,7 @@ export default function OrderPage() {
       { key: 'ordered', label: 'Ordered' },
       { key: 'delivered', label: 'Delivered' },
       { key: 'remaining', label: 'Remaining' },
+      { key: 'amount', label: 'Amount' },
       { key: 'status', label: 'Status' },
     ]);
   };
@@ -177,6 +182,25 @@ export default function OrderPage() {
       <TopBar title="Order" subtitle="Customer orders and tracking" />
 
       <div className="max-w-7xl mx-auto p-6 space-y-6">
+        {/* Date Filter */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Filter by Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              />
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Showing orders for:</p>
+              <p className="text-lg font-bold text-gray-900">{formatDateIndian(new Date(selectedDate))}</p>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow-sm border p-6">
           <h2 className="text-lg font-bold mb-4 text-gray-800">New Order Entry</h2>
 
@@ -192,7 +216,11 @@ export default function OrderPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <form 
+            onSubmit={handleSubmit} 
+            onKeyDown={handleEnterNavigation}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">PO Number <span className="text-red-500">*</span></label>
               <input
@@ -217,20 +245,33 @@ export default function OrderPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">Size <span className="text-red-500">*</span></label>
-              <select
-                name="size_mm"
-                value={formData.size_mm}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
-              >
-                {sizes.map(s => (
-                  <option key={s} value={s}>
-                    {s === 'Unsize' ? s : `${s} mm`}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Size <span className="text-red-500">*</span></label>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  name="size_mm"
+                  value={formData.size_mm}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                >
+                  {sizes.map(s => (
+                    <option key={s} value={s}>
+                      {s === 'Unsize' ? s : `${s} mm`}
+                    </option>
+                  ))}
+                </select>
+                {formData.size_mm === 'Unsize' && (
+                  <input
+                    type="text"
+                    name="custom_size"
+                    value={formData.custom_size}
+                    onChange={handleInputChange}
+                    placeholder="Enter Custom Size"
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    required
+                  />
+                )}
+              </div>
             </div>
 
             <div>
@@ -295,16 +336,12 @@ export default function OrderPage() {
 
             <div>
               <label className="block text-sm font-medium mb-1 text-gray-700">Amount</label>
-              <input
-                type="number"
-                disabled
-                value={
-                  formData.quantity && formData.rate
-                    ? (parseFloat(formData.quantity) * parseFloat(formData.rate)).toFixed(2)
-                    : ''
+              <div className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-50 text-gray-700 font-semibold h-10 flex items-center">
+                {formData.quantity && formData.rate
+                    ? formatCurrency(parseFloat(formData.quantity) * parseFloat(formData.rate))
+                    : '₹0.00'
                 }
-                className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100"
-              />
+              </div>
             </div>
 
             <div className="lg:col-span-1 flex items-end">
@@ -327,14 +364,14 @@ export default function OrderPage() {
                 onClick={handlePrint}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap"
               >
-                🖨️ Print
+                Print
               </button>
             )}
           </div>
 
           {entries.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-              <p className="text-gray-500">No orders yet</p>
+              <p className="text-gray-500">No orders for this date</p>
             </div>
           ) : (
             <div className="overflow-x-auto border rounded-md">
@@ -349,6 +386,7 @@ export default function OrderPage() {
                   <col style={{ width: '8%' }} />
                   <col style={{ width: '8%' }} />
                   <col style={{ width: '8%' }} />
+                  <col style={{ width: '12%' }} />
                   <col style={{ width: '9%' }} />
                 </colgroup>
                 <thead className="bg-gray-100 border-b">
@@ -358,9 +396,10 @@ export default function OrderPage() {
                     <th className="text-left px-3 py-3 font-semibold text-gray-700">Customer</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Size</th>
                     <th className="text-left px-3 py-3 font-semibold text-gray-700">Type / Colour</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Ordered Qty</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Delivered Qty</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Remaining Qty</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Ordered</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Delivered</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Remaining</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Amount</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Status</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Action</th>
                   </tr>
@@ -371,7 +410,7 @@ export default function OrderPage() {
                       <td className="px-3 py-4 text-gray-600 tabular-nums">{formatDateIndian(entry.date)}</td>
                       <td className="px-3 py-4 text-gray-700 font-medium">{entry.po_number}</td>
                       <td className="px-3 py-4 text-gray-800">{entry.customer_name}</td>
-                      <td className="text-center px-3 py-4 text-gray-700">{entry.size_mm === 'Unsize' ? entry.size_mm : `${entry.size_mm} mm`}</td>
+                      <td className="text-center px-3 py-4 text-gray-700 font-medium">{entry.size_mm}</td>
                       <td className="px-3 py-4 text-gray-700 text-xs">
                         {entry.product_type} <br/>
                         <span className="text-gray-500">{entry.colour}</span>
@@ -381,10 +420,11 @@ export default function OrderPage() {
                       <td className="text-center px-3 py-4 tabular-nums font-medium text-orange-600">
                         {formatIndianNumber(Math.max(0, entry.quantity - entry.delivered_quantity))}
                       </td>
+                      <td className="text-center px-3 py-4 tabular-nums text-gray-800">{formatCurrency(entry.amount)}</td>
                       <td className="text-center px-3 py-4">
                         {entry.status === 'COMPLETED' ? (
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold">
-                            ✔ Completed
+                            Completed
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">

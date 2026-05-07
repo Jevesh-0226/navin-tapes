@@ -24,12 +24,14 @@ model Purchase {
   
   // Either materialId OR size_mm must be provided
   materialId     Int?
-  size_mm        Int?
+  size_mm        String?
 
   quantity_kg    Float
   quantity_box   Float?
 
   amount         Float?
+  completed      Boolean  @default(false)
+  completed_at   DateTime?
 
   remarks        String?
   created_at     DateTime @default(now())
@@ -46,7 +48,7 @@ model Production {
   date             DateTime
   operator_name    String
   materialId       Int
-  size_mm          Int
+  size_mm          String
   tapes            Int
   meters_per_tape  Float
   needle_break     Int      @default(0)
@@ -65,7 +67,7 @@ model Sales {
   id             Int      @id @default(autoincrement())
   date           DateTime
   customer_name  String
-  size_mm        Int
+  size_mm        String
 
   quantity       Float
   rate           Float
@@ -88,7 +90,7 @@ model Sales {
 model Product {
   id          Int      @id @default(autoincrement())
   date        DateTime
-  size_mm     Int
+  size_mm     String
 
   quantity    Float    // finished tape produced (meters)
   quantity_box Float?
@@ -111,11 +113,13 @@ model Stock {
   materialId     Int?
 
   // Finished goods tracking
-  size_mm        Int?
+  size_mm        String?
   colour         String?
+  product_type   String?
 
   opening_stock  Float     @default(0)
   purchase       Float     @default(0)
+  consumed       Float     @default(0)
   production     Float     @default(0)
   sales          Float     @default(0)
 
@@ -123,7 +127,7 @@ model Stock {
 
   material Material? @relation(fields: [materialId], references: [id])
 
-  @@unique([date, materialId, size_mm, colour])
+  @@unique([date, materialId, size_mm, colour, product_type])
   @@index([date])
   @@index([materialId])
   @@index([size_mm])

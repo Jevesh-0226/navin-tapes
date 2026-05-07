@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import TopBar from '@/components/TopBar';
 import { productAPI, getErrorMessage } from '@/lib/api-client';
 import { getToday, formatDateIndian, formatIndianNumber, printTable } from '@/lib/utils';
+import { handleEnterNavigation } from '@/lib/form-nav';
 
 interface ProductEntry {
   id: number;
   date: string;
-  size_mm: number;
+  size_mm: string;
   quantity: number;
   quantity_box?: number | null;
   colour?: string | null;
@@ -26,6 +27,7 @@ export default function ProductPage() {
   const [formData, setFormData] = useState({
     date: getToday(),
     size_mm: '3',
+    custom_size: '',
     quantity: '',
     quantity_box: '',
     colour: '',
@@ -33,7 +35,7 @@ export default function ProductPage() {
     remarks: '',
   });
 
-  const sizes = [3, 4, 6, 8, 10, 15, 18, 20, 25, 30, 35, 40, 45, 50, 55];
+  const sizes = ['3', '4', '6', '8', '10', '15', '18', '20', '25', '30', '35', '40', '45', '50', '55', 'Unsize'];
   const COLOURS = ['Black', 'White', 'Other'];
   const PRODUCT_TYPES = ['Rubber Elastic', '840 Lycra', '840 Lycra Finishing', '1120 Lycra Finishing'];
 
@@ -84,8 +86,10 @@ export default function ProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.quantity) {
-      setError('Please enter quantity');
+    const finalSize = formData.size_mm === 'Unsize' ? formData.custom_size : formData.size_mm;
+
+    if (!formData.quantity || (formData.size_mm === 'Unsize' && !formData.custom_size)) {
+      setError('Please enter required fields');
       return;
     }
 
@@ -94,7 +98,7 @@ export default function ProductPage() {
     try {
       const response = await productAPI.create({
         date: formData.date,
-        size_mm: parseInt(formData.size_mm),
+        size_mm: finalSize,
         quantity: parseFloat(formData.quantity),
         quantity_box: formData.quantity_box ? parseFloat(formData.quantity_box) : null,
         colour: formData.colour || null,
@@ -112,6 +116,7 @@ export default function ProductPage() {
           colour: '',
           product_type: '',
           remarks: '',
+          custom_size: '',
         }));
         // Add new entry to state immediately without waiting for full refetch
         if (response.data?.data) {
@@ -148,8 +153,8 @@ export default function ProductPage() {
     const printData = entries.map(entry => ({
       date: formatDateIndian(entry.date),
       size: entry.size_mm,
-      quantity: entry.quantity.toFixed(2),
-      box: entry.quantity_box?.toFixed(2) || '-',
+      quantity: formatIndianNumber(entry.quantity),
+      box: entry.quantity_box ? formatIndianNumber(entry.quantity_box) : '-',
       colour: entry.colour || '-',
       type: entry.product_type || '-',
       remarks: entry.remarks || '-',
@@ -206,33 +211,48 @@ export default function ProductPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">Size (mm)</label>
-              <select
-                name="size_mm"
-                value={formData.size_mm}
-                onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
-                required
-              >
-                {sizes.map(s => (
-                  <option key={s} value={s}>
-                    {s} mm
-                  </option>
-                ))}
-              </select>
+          <form 
+            onSubmit={handleSubmit} 
+            onKeyDown={handleEnterNavigation}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          >
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Size (mm) <span className="text-red-500">*</span></label>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  name="size_mm"
+                  value={formData.size_mm}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                  required
+                >
+                  {sizes.map(s => (
+                    <option key={s} value={s}>
+                      {s === 'Unsize' ? s : `${s} mm`}
+                    </option>
+                  ))}
+                </select>
+                {formData.size_mm === 'Unsize' && (
+                  <input
+                    type="text"
+                    name="custom_size"
+                    value={formData.custom_size}
+                    onChange={handleInputChange}
+                    placeholder="Enter Size"
+                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    required
+                  />
+                )}
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-700">Quantity (meters)</label>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Quantity (meters) <span className="text-red-500">*</span></label>
               <input
                 type="number"
                 name="quantity"
                 value={formData.quantity}
                 onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="0.00"
                 step="0.01"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -247,7 +267,6 @@ export default function ProductPage() {
                 name="quantity_box"
                 value={formData.quantity_box}
                 onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 placeholder="0"
                 step="0.01"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
@@ -260,7 +279,6 @@ export default function ProductPage() {
                 name="colour"
                 value={formData.colour}
                 onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
               >
                 <option value="">Select Colour</option>
@@ -276,7 +294,6 @@ export default function ProductPage() {
                 name="product_type"
                 value={formData.product_type}
                 onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e as any)}
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
               >
                 <option value="">Select Type</option>
@@ -292,18 +309,17 @@ export default function ProductPage() {
                 name="remarks"
                 value={formData.remarks}
                 onChange={handleInputChange}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSubmit(e as any))}
                 placeholder="Optional notes"
                 rows={1}
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
 
-            <div className="lg:col-span-4 flex items-end">
+            <div className="lg:col-span-1 flex items-end">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full md:w-auto px-8 bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
+                className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-sm"
               >
                 {loading ? 'Saving...' : 'Save Product Entry'}
               </button>
@@ -320,7 +336,7 @@ export default function ProductPage() {
                 onClick={handlePrint}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium transition-colors whitespace-nowrap"
               >
-                🖨️ Print
+                Print
               </button>
             )}
           </div>
@@ -333,18 +349,18 @@ export default function ProductPage() {
             <div className="overflow-x-auto border rounded-md">
               <table className="w-full text-sm table-fixed">
                 <colgroup>
-                  <col style={{ width: '14.2857%' }} />
-                  <col style={{ width: '14.2857%' }} />
-                  <col style={{ width: '14.2857%' }} />
-                  <col style={{ width: '14.2857%' }} />
-                  <col style={{ width: '14.2857%' }} />
-                  <col style={{ width: '14.2857%' }} />
-                  <col style={{ width: '14.2857%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '15%' }} />
                 </colgroup>
                 <thead className="bg-gray-100 border-b">
                   <tr>
                     <th className="text-left px-3 py-3 font-semibold text-gray-700">Date</th>
-                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Size (mm)</th>
+                    <th className="text-center px-3 py-3 font-semibold text-gray-700">Size</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Qty (m)</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Qty (box)</th>
                     <th className="text-center px-3 py-3 font-semibold text-gray-700">Colour</th>
@@ -356,8 +372,8 @@ export default function ProductPage() {
                   {entries.map(entry => (
                     <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
                       <td className="px-3 py-4 text-gray-600 tabular-nums">{formatDateIndian(entry.date)}</td>
-                      <td className="text-center px-3 py-4 text-gray-700">{entry.size_mm}</td>
-                      <td className="text-center px-3 py-4 tabular-nums font-medium text-blue-600">{formatIndianNumber(entry.quantity)}</td>
+                      <td className="text-center px-3 py-4 text-gray-700 font-medium">{entry.size_mm}</td>
+                      <td className="text-center px-3 py-4 tabular-nums font-bold text-gray-800">{formatIndianNumber(entry.quantity)}</td>
                       <td className="text-center px-3 py-4 tabular-nums text-gray-700">{entry.quantity_box ? formatIndianNumber(entry.quantity_box) : '-'}</td>
                       <td className="text-center px-3 py-4 text-gray-700 text-sm">{entry.colour || '-'}</td>
                       <td className="px-3 py-4 text-gray-700 text-xs">{entry.product_type || '-'}</td>

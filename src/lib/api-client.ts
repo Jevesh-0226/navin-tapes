@@ -46,14 +46,15 @@ export const salesAPI = {
 // Stock API - Central inventory ledger
 export const stockAPI = {
   getAll: () => api.get('/stock'),
-  getByDate: (date: string) => api.get(`/stock?date=${date}`),
-  getById: (id: number) => api.get(`/stock/${id}`),
-  getCurrentStock: () => api.get('/stock?current=true'),
+  getByDate: (date: string, materialId?: string, size_mm?: string) => {
+    const params = new URLSearchParams({ date });
+    if (materialId && materialId !== 'all') params.append('materialId', materialId);
+    if (size_mm && size_mm !== 'all') params.append('size_mm', size_mm);
+    return api.get(`/stock?${params.toString()}`);
+  },
   create: (data: any) => api.post('/stock', data),
   update: (id: number, data: any) => api.put(`/stock/${id}`, data),
   delete: (id: number) => api.delete(`/stock/${id}`),
-  getReport: (startDate: string, endDate: string) =>
-    api.get(`/stock?report=true&startDate=${startDate}&endDate=${endDate}`),
 };
 
 // Product API - Finished goods production

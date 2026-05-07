@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import StockTable from '@/components/stock/StockTable';
 import FilterBar from '@/components/stock/FilterBar';
-import { getToday, formatDateIndian } from '@/lib/utils';
+import { stockAPI } from '@/lib/api-client';
+import { getToday, formatDateIndian, formatIndianNumber } from '@/lib/utils';
 
 export default function StockLedgerPage() {
   const [data, setData] = useState([]);
@@ -24,15 +25,9 @@ export default function StockLedgerPage() {
   const fetchStock = useCallback(async () => {
     setLoading(true);
     try {
-      const queryParams = new URLSearchParams();
-      if (filters.date) queryParams.append('date', filters.date);
-      if (filters.materialId !== 'all') queryParams.append('materialId', filters.materialId);
-      if (filters.size_mm !== 'all') queryParams.append('size_mm', filters.size_mm);
-
-      const response = await fetch(`/api/stock?${queryParams.toString()}`);
-      const result = await response.json();
-      if (result.success) {
-        setData(result.data);
+      const response = await stockAPI.getByDate(filters.date, filters.materialId, filters.size_mm);
+      if (response.data?.success) {
+        setData(response.data.data);
       }
     } catch (error) {
       console.error('Failed to fetch stock:', error);
@@ -99,11 +94,11 @@ export default function StockLedgerPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div className="bg-white border rounded-lg p-4 shadow-sm">
               <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Material Inward ({getDisplayDate()})</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.totalPurchase.toFixed(2)} kg</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{formatIndianNumber(stats.totalPurchase)} kg</p>
             </div>
             <div className="bg-white border rounded-lg p-4 shadow-sm">
               <p className="text-xs text-gray-500 uppercase tracking-wider font-medium">Tape Production ({getDisplayDate()})</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{stats.totalProduction.toFixed(2)} m</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{formatIndianNumber(stats.totalProduction)} m</p>
             </div>
           </div>
 
