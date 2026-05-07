@@ -92,7 +92,7 @@ async function main() {
       data: {
         date: new Date(),
         customer_name: "Tapes & More",
-        size_mm: 12,
+        size_mm: "12",
         quantity: 10,
         rate: 5.5,
         amount: 55,
